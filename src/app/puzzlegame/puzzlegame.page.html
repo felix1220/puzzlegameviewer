@@ -1,0 +1,43 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>
+      Puzzle
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+
+<ion-content>
+ <!-- <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Blank</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div *ngFor="let puzzle of puzzles$ | async">
+    <div>
+      {{ puzzle.name }}
+    </div>
+    <div>
+      {{ puzzle.Style }}
+    </div>
+  </div>
+-->
+<!--
+<div id="togglePanel">
+  <label class="switch">
+      <input type="checkbox" id="toggleCheck">
+      <span class="slider round"></span>
+  </label>
+  <span id="sliderMsg">
+      Move Puzzle
+  </span>
+</div>-->
+<div id="togglePanel">
+  <div id="moveCanvas" class="highlight" (click)="toggleStatus($event)" >Move Puzzle</div>
+  <div id="highlightCanvas" class="pale" (click)="toggleStatus($event)" >Highlight</div>
+</div>
+  <div style="float:left;width:70%">
+    <canvas id="canvas" width="500" height="500"></canvas>
+</div>
+</ion-content>

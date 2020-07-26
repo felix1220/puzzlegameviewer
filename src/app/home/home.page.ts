@@ -3,6 +3,7 @@ import { EventsService } from '../events.service';
 import { EmergencyEvent, EventResponse } from '../interfaces';
 import { Observable, Subscription } from 'rxjs';
 import { NavController } from '@ionic/angular';
+import { Network } from '@ngx-pwa/offline';
 
 @Component({
   selector: 'app-home',
@@ -12,9 +13,11 @@ import { NavController } from '@ionic/angular';
 export class HomePage implements OnInit, OnDestroy{
   events: EventResponse[] = [];
   sub: Subscription;
-
+  online$ = this.network.onlineChanges;
+  
   constructor(private eventService: EventsService,
-    private nav: NavController) {}
+    private nav: NavController,
+    private network: Network) {}
     
     ngOnInit(): void {
       this.sub = this.eventService.getAll()
@@ -31,5 +34,8 @@ export class HomePage implements OnInit, OnDestroy{
   
     details(event: EventResponse) {
       this.nav.navigateForward(`/details/${event.event.id}`);
+    }
+    goPuzzle(): void {
+      this.nav.navigateForward('/puzzlegame');
     }
 }

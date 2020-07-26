@@ -15,6 +15,10 @@ const routes: Routes = [
     path: 'details/:eventId',
     loadChildren: () => import('./details/details.module').then( m => m.DetailsPageModule)
   },
+  {
+    path: 'puzzlegame',
+    loadChildren: () => import('./puzzlegame/puzzlegame.module').then( m => m.PuzzlegamePageModule)
+  },
 ];
 
 @NgModule({
