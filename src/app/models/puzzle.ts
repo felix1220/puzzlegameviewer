@@ -4,4 +4,5 @@ export interface Puzzle {
     Style:string;
     content: string;
     name: string;
+    modulus: number;
 }

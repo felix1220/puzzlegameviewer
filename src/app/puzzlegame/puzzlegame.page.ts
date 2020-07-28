@@ -4,6 +4,8 @@ import { Point2D } from '../models/point';
 import { Pixel } from '../models/pixel';
 import { PuzzleService } from '../services/puzzle.service';
 import { ɵTestingCompilerFactory } from '@angular/core/testing';
+import { first } from 'rxjs/operators';
+import { runInThisContext } from 'vm';
 
 @Component({
   selector: 'app-puzzlegame',
@@ -23,6 +25,10 @@ export class PuzzlegamePage implements OnInit {
   puzzleStyle: string = '';
   fourCorners: any;
   isMoveVialation: boolean = false;
+  cellWidth = 0;
+  mod = 0;
+  numOfCols = 8;
+  puzzleSections = [];
 
   constructor(private puzzleService: PuzzleService) { 
     this.allPixles= new Array<Pixel>();
@@ -35,9 +41,12 @@ export class PuzzlegamePage implements OnInit {
     this.puzzleSubscribe = this.puzzleService.loadPuzzles().subscribe( puzzleData => {
       // console.log('content bytes =>', puzzleData);
       this.puzzleStyle = puzzleData[0].Style;
+      this.cellWidth = puzzleData[0].Font + puzzleData[0].Spacing;
+      this.mod = puzzleData[0].modulus;
       this.populatePixelArray(puzzleData[0].content);
       this.loadDataToCanvas();
       this.fourCorners = this.edgeCases();
+     
       this.setUpMoveLimit();
     });
     this.loadCanvasEvents();
@@ -56,12 +65,42 @@ export class PuzzlegamePage implements OnInit {
       bottomRight: lastRect
     }
   }
+  private buildSections(): void {
+    let startX = this.allPixles[0].position.x - this.cellWidth;
+    let endX = this.allPixles[this.allPixles.length - 1].position.x + this.cellWidth;
+    let startY = this.allPixles[0].position.y - this.cellWidth;
+    let endY = this.allPixles[this.allPixles.length - 1].position.y + this.cellWidth;
+    const width = endX - startX;
+    const height = endY - startY;
+    const howManySectionsAcross = width / this.numOfCols;
+    const howManySectionsDown = height / this.numOfCols;
+    let copyStartY = startY;
+    let w=0,h=0;
+    while( h < howManySectionsDown) {
+      w = 0;
+      while( w < howManySectionsAcross) {
+        endX = startX + (this.mod + 1 ) * this.numOfCols;
+        endY = startY + this.numOfCols;
+        const blockIds = this.allPixles.filter(x => x.position.x > startX && x.position.x < endX
+                                              && x.position.y > startY && x.position.y < endY)
+        w++;
+        startY = copyStartY;
+        this.puzzleSections.push(blockIds);
+        startX = blockIds[blockIds.length - 1].position.x + this.cellWidth;
+      }
+      startY = startY + 8;
+      copyStartY = startY;
+      h++;
+    }
+
+
+  }
   private setUpMoveLimit(): void  {
-    const percLimit = .15;
+    const percLimit = .25;
     const chunkWidth = Math.floor(this.canvasRef.width * percLimit);
     const chunkHeight = Math.floor(this.canvasRef.height * percLimit);
     const rightPosX = this.canvasRef.width - chunkWidth;
-    const rightPosY = this.canvasRef.height + chunkHeight;
+    const rightPosY =  chunkHeight;
     const topRightRect = new Pixel();
     topRightRect.position = new Point2D(rightPosX, rightPosY);
     const topLeftRect = new Pixel();
@@ -78,11 +117,12 @@ export class PuzzlegamePage implements OnInit {
       topLeftLimit: topLeftRect,
       bottomLeftLimit: bottomLeftRect
     }
+    console.log('the four corners =>', this.fourCorners);
 
     
   }
   private checkIfCanMove(): void {
-    const topLeftRect = this.allPixles.find( x => x.id === this.fourCorners.topLeftRect.id);
+    const topLeftRect = this.allPixles.find( x => x.id === this.fourCorners.topLeft.id);
     const topRightRect = this.allPixles.find(x => x.id === this.fourCorners.topRight.id);
     const bottomLeftRect = this.allPixles.find(x => x.id === this.fourCorners.bottomLeft.id);
     const bottomRightRect = this.allPixles.find( x => x.id === this.fourCorners.bottomRight.id);
@@ -108,6 +148,11 @@ export class PuzzlegamePage implements OnInit {
                 this.loadDataToCanvas();
                 this.checkIfCanMove();
       }
+      else if (this.statusHightlight) {
+        this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+        const pt = this.getMousePos(evt);
+        this.loadDataToCanvas();
+      }
      // console.log("In Mouse Moving =>" , this.isMouseDown);
     }
     this.canvasRef.onmousedown = (evt) => {
@@ -127,6 +172,27 @@ export class PuzzlegamePage implements OnInit {
       let oldY = pixel.position.y;
       pixel.position = new Point2D(oldX + deltaX, oldY + deltaY);
     })
+  }
+  private displayOutline(mousePt: Point2D): void {
+     this.puzzleSections.forEach(elementArr => {
+       //get the first
+       const firstElem = elementArr[0] as Pixel;
+       const lastElem = elementArr[elementArr.length - 1] as Pixel;
+       if (mousePt.x > firstElem.position.x && mousePt.x < lastElem.position.x 
+           && mousePt.y > firstElem.position.y && mousePt.y < lastElem.position.y) {
+            this.context.beginPath();
+            this.context.moveTo(firstElem.position.x, firstElem.position.y);
+            this.context.lineTo( lastElem.position.x, firstElem.position.y);
+            this.context.moveTo(lastElem.position.x, firstElem.position.y);
+            this.context.lineTo(lastElem.position.x, lastElem.position.y);
+            this.context.moveTo(lastElem.position.x, lastElem.position.y);
+            this.context.lineTo(firstElem.position.x, lastElem.position.y);
+            this.context.moveTo(firstElem.position.x, lastElem.position.y);
+            this.context.lineTo(firstElem.position.x, firstElem.position.y);
+            this.context.stroke();
+
+       }
+     });
   }
   private populatePixelArray(rawData: string): void {
     const eachPixelArr = rawData.split(' ');
