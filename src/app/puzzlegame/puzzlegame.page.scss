@@ -79,6 +79,28 @@ canvas {
             /*margin-bottom: 200px;*/
             
         }
+        #closeLetters {
+            display: flex;
+            position: fixed;
+            top: 60px;
+            right: 350px;
+            z-index: 100;
+            font-family: Roboto, sans-serif;
+        }
+        #closeLetters span {
+            display: block;
+            height: 30px;
+            width: 30px;
+            line-height: 30px;
+
+            -moz-border-radius: 30px;
+            border-radius: 30px;
+
+            background-color: red;
+            color: white;
+            text-align: center;
+            font-size: 1.2em;
+        }
         .flex-container {
             display: flex;
             font-family:Roboto, sans-serif;

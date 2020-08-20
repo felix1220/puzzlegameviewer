@@ -7,11 +7,12 @@ export class Pixel {
     green: number;
     blue: number;
     position: Point2D;
-    constructor (l: string ='', r: number=0, g:number=0, b:number=0, id: number=0) {
+    constructor (l: string ='', r: number=0, g:number=0, b:number=0, id: number=0, pos=undefined) {
         this.letter = l;
         this.red = r;
         this.green = g;
         this.blue = b;
         this.id = id;
+        this.position = pos;
     }
 }

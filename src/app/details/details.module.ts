@@ -18,11 +18,8 @@ import {AngularFireStorageModule} from '@angular/fire/storage';
     CommonModule,
     FormsModule,
     IonicModule,
-    DetailsPageRoutingModule,
-    AngularFireModule.initializeApp(environment.firebase),
-    AngularFireAuthModule,
-    AngularFirestoreModule,
-    AngularFireStorageModule
+    DetailsPageRoutingModule
+   
   ],
   declarations: [DetailsPage]
 })
