@@ -3,10 +3,13 @@ import { Subscription } from 'rxjs';
 import { Point2D } from '../models/point';
 import { Pixel } from '../models/pixel';
 import { PuzzleService } from '../services/puzzle.service';
-import { first } from 'rxjs/operators';
+import { first, find } from 'rxjs/operators';
 import { ThrowStmt } from '@angular/compiler';
 import { Repaint } from '../models/repaint';
 import { BlockType } from '../models/blockTypes';
+import { DirectionType } from '../models/directions';
+import { highlight } from '../models/highlight';
+import { Line } from '../models/line';
 
 
 @Component({
@@ -35,12 +38,23 @@ export class PuzzlegamePage implements OnInit {
   repaintLargeLetters: Repaint;
   transformedLetters: Repaint;
   inLargeMode:boolean = false;
+  userSelection: Pixel[];
+  foundStart:Pixel;
+  currentVisualQueue: Pixel[] = [];
+  currentSelectedQueue: Pixel[] = [];
+  selectionFuncs:Function[] = [];
+  selectDir: DirectionType =DirectionType.None;
+  displayErrModal: boolean = false;
+  selectionCoords:highlight
 
   constructor(private puzzleService: PuzzleService) { 
     this.allPixles= new Array<Pixel>();
     this.initialDown = new Point2D(0,0);
     this.leftUpperLimit = new Point2D(0,0);
+    this.userSelection = new Array<Pixel>();
     this.puzzelSections = {};
+    this.selectionCoords = new highlight();
+
   }
 
   ngOnInit() {
@@ -54,11 +68,172 @@ export class PuzzlegamePage implements OnInit {
       this.populatePixelArray(puzzleData[0].content);
       this.loadDataToCanvas();
       this.fourCorners = this.edgeCases();
+
      
       this.setUpMoveLimit();
       this.buildSections();
     });
+    this.setUpSelectionFuncs();
     this.loadCanvasEvents();
+    
+  }
+  private setUpSelectionFuncs(): void {
+    this.selectionFuncs.push(
+      () => {
+        if (this.currentSelectedQueue.length >= 2) {
+          const findDir = (start: Pixel, end: Pixel): DirectionType => {
+            let subDir: DirectionType = undefined;
+            if (start.position.y === end.position.y && end.position.x - start.position.x > 1) {
+              subDir = DirectionType.horizontalRight;
+            } else if (start.position.y === end.position.y && end.position.x - start.position.x < 0) {
+              subDir = DirectionType.horizontalLeft
+            } else if (start.position.x === end.position.x && end.position.x - start.position.y < 0) {
+              subDir = DirectionType.verticalUp;
+            }
+            else if (start.position.x === end.position.x && end.position.x - start.position.y > 1) {
+              subDir = DirectionType.verticalDown;
+            } else if (end.position.x - start.position.x > 1 && end.position.y - start.position.y < 0) {
+              subDir = DirectionType.diagonalUpRight;
+            } else if (end.position.x - start.position.x > 1 && end.position.y - start.position.y > 0) {
+              subDir = DirectionType.diagonalDownRight;
+            } else if (end.position.x - start.position.x < 0 && end.position.y - start.position.y < 0) {
+              subDir = DirectionType.diagonalUpLeft;
+            } else if (end.position.x - start.position.x < 0 && end.position.y - start.position.y > 0) {
+              subDir = DirectionType.diagonalDownLeft
+            }
+              return subDir;
+          }
+          if (this.selectDir === DirectionType.None) {
+            this.selectDir = findDir(this.currentSelectedQueue[0], this.currentSelectedQueue[1])
+            console.log('The seleced Dir => ', this.selectDir);
+          } else if (this.selectDir !== findDir(this.currentSelectedQueue[0], this.currentSelectedQueue[this.currentSelectedQueue.length - 1])) {
+            this.currentSelectedQueue = [];
+            this.displayErrModal = true;
+            this.selectDir = DirectionType.None;
+            this.selectionCoords = new highlight();
+            return false;
+          }
+          console.log('Find Direction => ', this.selectDir);
+          return true;
+        }
+        return false;
+      },
+      () => {
+         if( this.selectDir === DirectionType.horizontalRight || this.selectDir === DirectionType.diagonalUpRight ||
+            this.selectDir === DirectionType.diagonalDownRight || this.selectDir === DirectionType.horizontalLeft) {
+              this.selectionCoords.start = new Line(
+                new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[0].position.y),
+                new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+              );
+              
+               if (this.selectDir === DirectionType.horizontalLeft) {
+                this.selectionCoords.end = new Line (
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth) 
+                 );
+                this.selectionCoords.top = [];
+                this.selectionCoords.top.push(
+                  new Line(
+                    new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+                    new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+                  )
+                );
+                this.selectionCoords.bottom = [];
+                this.selectionCoords.bottom.push(
+                  new Line(
+                    new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[0].position.y),
+                    new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+                  )
+                 )
+
+               } else if (this.selectDir === DirectionType.horizontalRight) { 
+                this.selectionCoords.end = new Line (
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth) 
+                 );
+               this.selectionCoords.top = [];
+               this.selectionCoords.top.push(
+                 new Line(
+                   new Point2D(this.currentSelectedQueue[0].position.x, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+                   new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+                 )
+               );
+               this.selectionCoords.bottom = [];
+               this.selectionCoords.bottom.push(
+                new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x,this.currentSelectedQueue[0].position.y),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+                )
+               )
+              } else if (this.selectDir === DirectionType.diagonalUpRight) {
+                this.selectionCoords.top = [];
+                this.selectionCoords.top.push(
+                  new Line(
+                    new Point2D(this.currentSelectedQueue[0].position.x, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+                    new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+                  ),
+                  new Line(
+                    new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+                    new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+                  ),
+                  new Line(
+                     new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth),
+                     new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+                  )
+
+                );
+                this.selectionCoords.bottom = [];
+                this.selectionCoords.bottom.push(
+                  new Line(
+                    new Point2D(this.currentSelectedQueue[0].position.x, this.currentSelectedQueue[0].position.y),
+                    new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y)
+                  ),
+                  new Line(
+                    new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y),
+                    new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+                  ),
+                  new Line(
+                     new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
+                     new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+                  )
+
+                )
+              }
+            }
+          return true;
+      }
+    )
+  }
+  private displaySelectionsByUser(): void {
+    if (this.selectionCoords && !this.selectionCoords.start) {
+      return;
+    }
+   
+    this.context.beginPath();
+    this.context.moveTo(this.selectionCoords.start.start.x, this.selectionCoords.start.start.y);
+    this.context.lineTo(this.selectionCoords.start.end.x, this.selectionCoords.start.end.y);
+      this.selectionCoords.top.forEach((l) => {
+      
+          this.context.moveTo(l.start.x, l.start.y);
+          this.context.lineTo(l.end.x, l.end.y);
+        
+      });
+      this.selectionCoords.bottom.forEach((l) => {
+      
+        this.context.moveTo(l.start.x, l.start.y);
+        this.context.lineTo(l.end.x, l.end.y);
+      
+    });
+    this.context.moveTo(this.selectionCoords.end.start.x, this.selectionCoords.end.start.y);
+    this.context.lineTo(this.selectionCoords.end.end.x, this.selectionCoords.end.end.y);
+    this.context.stroke();
+
+  }
+  private processActionQueue(index: number) {
+    if(this.selectionFuncs[index] && this.selectionFuncs[index]()){
+      this.processActionQueue(index+1);
+    }
+    return;
   }
   private edgeCases(): any {
     const firstRect = this.allPixles[0];
@@ -73,6 +248,14 @@ export class PuzzlegamePage implements OnInit {
       bottomLeft: bottomLeft,
       bottomRight: lastRect
     }
+  }
+  backToMainScreen(): void {
+    this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+    this.loadDataToCanvas();
+    this.statusMove = true;
+    this.statusHightlight = false;
+    this.inLargeMode = false;
+    this.throwToggleStatus();
   }
   private buildSections(): void {
     
@@ -180,17 +363,24 @@ export class PuzzlegamePage implements OnInit {
   }
   // load events function
   private loadCanvasEvents(): void {
+
     this.canvasRef.onmousemove = (evt) => {
      
       const pt = this.getMousePos(evt);
-     
-      if (this.statusMove && this.inLargeMode && this.isMouseDown) {
+     if ( this.statusHightlight && this.inLargeMode && !this.isMouseDown) {
+      this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+      this.largeLettersInit();
+      this.displaySelectionsByUser();
+     }
+      else if (this.statusMove && this.inLargeMode && this.isMouseDown) {
         this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
         let deltaX = pt.x - this.initialDown.x;
         let deltaY = pt.y - this.initialDown.y;
         this.initialDown = new Point2D(pt.x, pt.y);
         this.updateLargeLettersPos(deltaX, deltaY);
         this.largeLettersInit();
+        this.findViewPortRects();
+        //console.log('The ViewPort Rects => ', this.currentVisualQueue);
       }
       else if (this.isMouseDown && this.statusMove && !this.isMoveVialation && !this.inLargeMode) {
         this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
@@ -225,6 +415,14 @@ export class PuzzlegamePage implements OnInit {
     this.canvasRef.onmousedown = (evt) => {
       this.isMouseDown = true;
       const currPos = this.getMousePos(evt);
+      if (this.statusHightlight && this.inLargeMode) {
+        this.userSelections(currPos);
+        this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+        this.largeLettersInit();
+        console.log('Current Selection Queue =>', this.currentSelectedQueue, this.currentVisualQueue.length);
+        this.processActionQueue(0);
+        this.displaySelectionsByUser();
+      }
       if (this.statusHightlight && !this.inLargeMode) {
         this.inLargeMode = true;
         this.statusMove = true;
@@ -232,9 +430,10 @@ export class PuzzlegamePage implements OnInit {
         this.displayOutline(currPos, true);
         this.prepLargeLetters();
         this.throwToggleStatus();
-        console.log(this.transformedLetters.center);
+        // console.log(this.transformedLetters.center);
         this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
         this.largeLettersInit();
+        this.findViewPortRects();
       } 
         this.initialDown = new Point2D(currPos.x, currPos.y);
       
@@ -246,6 +445,30 @@ export class PuzzlegamePage implements OnInit {
       this.isMouseDown = false;
       this.isMoveVialation = false;
     }
+  }
+  private userSelections(pos: Point2D): void {
+    this.currentVisualQueue.forEach( r => {
+      if (r.position.x < pos.x && pos.x < r.position.x + r.largeWidth &&
+          r.position.y -  r.largeWidth < pos.y && pos.y < r.position.y) {
+            this.currentSelectedQueue.push(r)
+          }
+    })
+  }
+  private findViewPortRects(): void {
+    const collector:Pixel[] = [];
+    this.currentVisualQueue = [];
+    const w = this.canvasRef.width;
+    const h = this.canvasRef.height;
+    for (const property in this.transformedLetters) {
+      const newBlocks = this.findViewportPixels(w, h, this.transformedLetters[property])
+      collector.push(...newBlocks);
+      
+    }
+    this.currentVisualQueue.push(...collector);
+  }
+  private findViewportPixels(w: number, h: number, pixelBlock: Pixel[]): Pixel[] {
+    return pixelBlock.filter( rect => 0 < rect.position.x && rect.position.x < w &&
+      0 < rect.position.y && rect.position.y < w);
   }
   private updatePuzzlePosition(deltaX: number, deltaY: number): void {
     this.allPixles.forEach(pixel => {
@@ -405,7 +628,8 @@ export class PuzzlegamePage implements OnInit {
         originalBlock[i].green,
         originalBlock[i].blue,
         i,
-        new Point2D(rect.x * newWidth + translateX,rect.y * newWidth + translateY))
+        new Point2D(rect.x * newWidth + translateX,rect.y * newWidth + translateY),
+        newWidth)
       )
     })
 
@@ -612,6 +836,9 @@ export class PuzzlegamePage implements OnInit {
 
     //this.statusMove = !this.statusMove;
     //this.statusHightlight = !this.statusHightlight;
+  }
+  closeOops(): void {
+    this.displayErrModal = false;
   }
   private lengthInUtf8Bytes(str: string): number {
     // Matches only the 10.. bytes that are non-initial characters in a multi-byte sequence.
