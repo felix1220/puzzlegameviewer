@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 import { Point2D } from '../models/point';
 import { Pixel } from '../models/pixel';
 import { PuzzleService } from '../services/puzzle.service';
@@ -10,6 +10,8 @@ import { BlockType } from '../models/blockTypes';
 import { DirectionType } from '../models/directions';
 import { highlight } from '../models/highlight';
 import { Line } from '../models/line';
+import { BoardPixel } from '../models/boardPixel';
+import { worker } from 'cluster';
 
 
 @Component({
@@ -45,7 +47,10 @@ export class PuzzlegamePage implements OnInit {
   selectionFuncs:Function[] = [];
   selectDir: DirectionType =DirectionType.None;
   displayErrModal: boolean = false;
-  selectionCoords:highlight
+  selectionCoords:highlight;
+  subscriptionTimer: Subscription;
+  // pixelsFound: Pixel[];
+  boardPixelsFound: BoardPixel[];
 
   constructor(private puzzleService: PuzzleService) { 
     this.allPixles= new Array<Pixel>();
@@ -77,8 +82,232 @@ export class PuzzlegamePage implements OnInit {
     this.loadCanvasEvents();
     
   }
+  private checkSelectedWord(): void {
+    //check if the word is valid
+    if(true) {
+      const pixelsFound:Pixel[] = [];
+      this.currentSelectedQueue.forEach( pix => {
+        const foundPix = this.allPixles.find( p => p.id === pix.id);
+        pixelsFound.push(foundPix);
+      });
+
+      this.boardPixelsFound.push(new BoardPixel(pixelsFound));
+    } else {
+      
+    }
+    if(this.subscriptionTimer) {
+
+      this.subscriptionTimer.unsubscribe();
+    }
+    this.currentSelectedQueue = [];
+  }
+  private highlightOnBoard(wordProxy: BoardPixel): void {
+    const dir = wordProxy.words[0].directionType;
+    if (dir === DirectionType.horizontalRight || dir === DirectionType.diagonalUpRight ||
+        dir === DirectionType.diagonalDownRight || dir === DirectionType.horizontalLeft) {
+          wordProxy.mark.start = new Line(
+            new Point2D(wordProxy.words[0].position.x, wordProxy.words[0].position.y),
+            new Point2D(wordProxy.words[0].position.x, wordProxy.words[0].position.y - this.cellWidth)
+          );
+          if (dir === DirectionType.horizontalLeft) {
+            wordProxy.mark.start = new Line(
+              new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y),
+              new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y - this.cellWidth)
+            );
+            
+            wordProxy.mark.end = new Line (
+              new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y),
+              new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth) 
+             );
+             wordProxy.mark.top = [];
+             wordProxy.mark.top.push(
+              new Line(
+                new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y - this.cellWidth),
+                new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
+              )
+            );
+            wordProxy.mark.bottom = [];
+            wordProxy.mark.bottom.push(
+              new Line(
+                new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y),
+                new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y)
+              )
+             )
+
+          } else if (dir === DirectionType.diagonalUpRight || dir === DirectionType.diagonalDownRight) {
+            wordProxy.mark.end = new Line(
+                          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth , wordProxy.words[wordProxy.words.length-1].position.y),
+                          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
+                        );
+            wordProxy.mark.top = [];
+            wordProxy.mark.top.push(
+              new Line(
+                new Point2D(wordProxy.words[0].position.x, wordProxy.words[0].position.y - this.cellWidth),
+                new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y - this.cellWidth)
+              ),
+              new Line(
+                new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y - this.cellWidth),
+                new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
+              ),
+              new Line(
+                new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy[wordProxy.words.length-1].position.y - this.cellWidth),
+                new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
+              )
+
+            );
+            wordProxy.mark.bottom = [];
+            this.selectionCoords.bottom.push(
+              new Line(
+                new Point2D(wordProxy.words[0].position.x, wordProxy.words[0].position.y),
+                new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y)
+              ),
+              new Line(
+                new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y),
+                new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y)
+              ),
+              new Line(
+                new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y),
+                new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y)
+              )
+
+            )
+        }
+    } else if (dir === DirectionType.verticalDown) {
+      wordProxy.mark.start = new Line(
+        new Point2D(wordProxy.words[0].position.x, wordProxy.words[0].position.y - this.cellWidth),
+        new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y - this.cellWidth)
+      );
+      this.selectionCoords.end = new Line(
+        new Point2D(wordProxy.words[wordProxy.words.length-1].position.x,wordProxy.words[wordProxy.words.length-1].position.y),
+         new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y)
+      );
+      wordProxy.mark.top = [];
+      wordProxy.mark.top.push(
+        new Line(
+          new Point2D(wordProxy.words[0].position.x, wordProxy.words[0].position.y - this.cellWidth),
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y)
+        )
+      )
+      wordProxy.mark.bottom = [];
+      wordProxy.mark.bottom.push(
+        new Line(
+          new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y - this.cellWidth),
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y)
+        )
+      )
+    }else if (dir === DirectionType.verticalUp) {
+      wordProxy.mark.start = new Line(
+        new Point2D(wordProxy.words[0].position.x, wordProxy.words[0].position.y),
+        new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y)
+      );
+      wordProxy.mark.end = new Line(
+        new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth),
+         new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
+      );
+      wordProxy.mark.top = [];
+      wordProxy.mark.top.push(
+        new Line(
+          new Point2D(wordProxy.words[0].position.x, wordProxy.mark[0].position.y),
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
+        )
+      )
+      wordProxy.mark.bottom = [];
+      wordProxy.mark.bottom.push(
+        new Line(
+          new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y),
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
+        )
+      )
+    } else if (this.selectDir === DirectionType.diagonalUpLeft) {
+      wordProxy.mark.start = new Line(
+        new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y),
+        new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y - this.cellWidth)
+      );
+      wordProxy.mark.end = new Line(
+        new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y),
+        new Point2D(wordProxy[wordProxy.words.length-1].position.x , wordProxy.mark[wordProxy.words.length-1].position.y - this.cellWidth)
+      )
+      wordProxy.mark.bottom = [];
+      wordProxy.mark.bottom.push(
+         new Line(
+          new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y),
+          new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y)
+         ),
+         new Line(
+          new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y),
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y)
+         ),
+         new Line(
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y),
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y)
+         )
+      )
+      wordProxy.mark.top = [];
+      wordProxy.mark.top.push(
+        new Line(
+          new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y - this.cellWidth),
+          new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y - this.cellWidth)
+        ),
+        new Line(
+          new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y - this.cellWidth),
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
+        ),
+        new Line(
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth),
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
+        )
+      )
+    } else if (dir === DirectionType.diagonalDownLeft) {
+      wordProxy.mark.start = new Line(
+        new Point2D(wordProxy.mark[0].position.x + this.cellWidth, wordProxy.words[0].position.y),
+        new Point2D(wordProxy.words[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+      );
+      this.selectionCoords.end = new Line(
+        new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
+        new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x , this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+      );
+      this.selectionCoords.bottom = [];
+      this.selectionCoords.bottom.push(
+        new Line(
+         new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[0].position.y),
+         new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y)
+        ),
+        new Line(
+         new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y),
+         new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth * .50 , this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+        ),
+        new Line(
+         new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth * .50, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
+         new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+        )
+     );
+     this.selectionCoords.top = [];
+      this.selectionCoords.top.push(
+        new Line(
+          new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+          new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+        ),
+        new Line(
+          new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+          new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth * .50, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+        ),
+        new Line(
+          new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth *.50, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth),
+          new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+        )
+      )
+    }
+
+  }
   private setUpSelectionFuncs(): void {
     this.selectionFuncs.push(
+      () => {
+        const source = timer(2000);
+        this.subscriptionTimer = source.subscribe(val => {
+          console.log(val);
+          this.checkSelectedWord();
+        });
+      },
       () => {
         if (this.currentSelectedQueue.length >= 2) {
           const findDir = (start: Pixel, end: Pixel): DirectionType => {
@@ -106,7 +335,9 @@ export class PuzzlegamePage implements OnInit {
           if (this.selectDir === DirectionType.None) {
             this.selectDir = findDir(this.currentSelectedQueue[0], this.currentSelectedQueue[1])
             console.log('The seleced Dir => ', this.selectDir);
-          } else if (this.selectDir !== findDir(this.currentSelectedQueue[0], this.currentSelectedQueue[this.currentSelectedQueue.length - 1])) {
+          } else if (this.selectDir !== findDir(this.currentSelectedQueue[0], this.currentSelectedQueue[this.currentSelectedQueue.length - 1])
+                     || Math.abs(this.currentSelectedQueue[this.currentSelectedQueue.length - 2].position.x - this.currentSelectedQueue[this.currentSelectedQueue.length - 1].position.x) > this.currentSelectedQueue[0].largeWidth
+                     || Math.abs(this.currentSelectedQueue[this.currentSelectedQueue.length - 2].position.y - this.currentSelectedQueue[this.currentSelectedQueue.length - 1].position.y) > this.currentSelectedQueue[0].largeWidth) {
             this.currentSelectedQueue = [];
             this.displayErrModal = true;
             this.selectDir = DirectionType.None;
@@ -114,19 +345,26 @@ export class PuzzlegamePage implements OnInit {
             return false;
           }
           console.log('Find Direction => ', this.selectDir);
+          this.currentSelectedQueue[0].directionType = this.selectDir;
           return true;
         }
         return false;
       },
       () => {
+        this.selectionCoords = new highlight();
          if( this.selectDir === DirectionType.horizontalRight || this.selectDir === DirectionType.diagonalUpRight ||
             this.selectDir === DirectionType.diagonalDownRight || this.selectDir === DirectionType.horizontalLeft) {
               this.selectionCoords.start = new Line(
-                new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[0].position.y),
-                new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+                new Point2D(this.currentSelectedQueue[0].position.x,this.currentSelectedQueue[0].position.y),
+                new Point2D(this.currentSelectedQueue[0].position.x, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
               );
               
                if (this.selectDir === DirectionType.horizontalLeft) {
+                this.selectionCoords.start = new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[0].position.y),
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+                );
+                
                 this.selectionCoords.end = new Line (
                   new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
                   new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth) 
@@ -165,7 +403,12 @@ export class PuzzlegamePage implements OnInit {
                   new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
                 )
                )
-              } else if (this.selectDir === DirectionType.diagonalUpRight) {
+              } else if (this.selectDir === DirectionType.diagonalUpRight || 
+                          this.selectDir === DirectionType.diagonalDownRight) {
+                      this.selectionCoords.end = new Line(
+                              new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth ,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
+                              new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+                            );
                 this.selectionCoords.top = [];
                 this.selectionCoords.top.push(
                   new Line(
@@ -199,6 +442,130 @@ export class PuzzlegamePage implements OnInit {
 
                 )
               }
+            }  else if (this.selectDir === DirectionType.verticalDown) {
+              this.selectionCoords.start = new Line(
+                new Point2D(this.currentSelectedQueue[0].position.x,this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+                new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+              );
+              this.selectionCoords.end = new Line(
+                new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
+                 new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+              );
+              this.selectionCoords.top = [];
+              this.selectionCoords.top.push(
+                new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x,this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+                )
+              )
+              this.selectionCoords.bottom = [];
+              this.selectionCoords.bottom.push(
+                new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+                )
+              )
+            } else if (this.selectDir === DirectionType.verticalUp) {
+              this.selectionCoords.start = new Line(
+                new Point2D(this.currentSelectedQueue[0].position.x,this.currentSelectedQueue[0].position.y),
+                new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y)
+              );
+              this.selectionCoords.end = new Line(
+                new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth),
+                 new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+              );
+              this.selectionCoords.top = [];
+              this.selectionCoords.top.push(
+                new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x,this.currentSelectedQueue[0].position.y),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+                )
+              )
+              this.selectionCoords.bottom = [];
+              this.selectionCoords.bottom.push(
+                new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+                )
+              )
+            } else if (this.selectDir === DirectionType.diagonalUpLeft) {
+              this.selectionCoords.start = new Line(
+                new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[0].position.y),
+                new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+              );
+              this.selectionCoords.end = new Line(
+                new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
+                new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x , this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+              )
+              this.selectionCoords.bottom = [];
+              this.selectionCoords.bottom.push(
+                 new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[0].position.y),
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y)
+                 ),
+                 new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+                 ),
+                 new Line(
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+                 )
+              )
+              this.selectionCoords.top = [];
+              this.selectionCoords.top.push(
+                new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+                ),
+                new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+                ),
+                new Line(
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+                )
+              )
+            } else if (this.selectDir === DirectionType.diagonalDownLeft) {
+              this.selectionCoords.start = new Line(
+                new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[0].position.y),
+                new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+              );
+              this.selectionCoords.end = new Line(
+                new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
+                new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x , this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+              );
+              this.selectionCoords.bottom = [];
+              this.selectionCoords.bottom.push(
+                new Line(
+                 new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[0].position.y),
+                 new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y)
+                ),
+                new Line(
+                 new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y),
+                 new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth * .50 , this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+                ),
+                new Line(
+                 new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth * .50, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
+                 new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+                )
+             );
+             this.selectionCoords.top = [];
+              this.selectionCoords.top.push(
+                new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+                ),
+                new Line(
+                  new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth * .50, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+                ),
+                new Line(
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth *.50, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth),
+                  new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+                )
+              )
             }
           return true;
       }

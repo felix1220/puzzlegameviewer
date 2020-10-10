@@ -1,3 +1,5 @@
+import { BlockType } from './blockTypes';
+import { DirectionType } from './directions';
 import { Point2D } from './point';
 
 export class Pixel {
@@ -8,7 +10,9 @@ export class Pixel {
     blue: number;
     position: Point2D;
     largeWidth: number;
-    constructor (l: string ='', r: number=0, g:number=0, b:number=0, id: number=0, pos=undefined, largeWidth=0) {
+    directionType: DirectionType;
+    constructor (l: string ='', r: number=0, g:number=0, b:number=0, id: number=0, 
+                pos=undefined, largeWidth=0, direction=DirectionType.None) {
         this.letter = l;
         this.red = r;
         this.green = g;
@@ -16,5 +20,6 @@ export class Pixel {
         this.id = id;
         this.position = pos;
         this.largeWidth = largeWidth;
+        this.directionType = direction;
     }
 }
