@@ -3,15 +3,12 @@ import { Subscription, timer } from 'rxjs';
 import { Point2D } from '../models/point';
 import { Pixel } from '../models/pixel';
 import { PuzzleService } from '../services/puzzle.service';
-import { first, find } from 'rxjs/operators';
-import { ThrowStmt } from '@angular/compiler';
 import { Repaint } from '../models/repaint';
 import { BlockType } from '../models/blockTypes';
 import { DirectionType } from '../models/directions';
 import { highlight } from '../models/highlight';
 import { Line } from '../models/line';
 import { BoardPixel } from '../models/boardPixel';
-import { worker } from 'cluster';
 
 
 @Component({
@@ -50,7 +47,7 @@ export class PuzzlegamePage implements OnInit {
   selectionCoords:highlight;
   subscriptionTimer: Subscription;
   // pixelsFound: Pixel[];
-  boardPixelsFound: BoardPixel[];
+  boardPixelsFound: BoardPixel[] = [];
 
   constructor(private puzzleService: PuzzleService) { 
     this.allPixles= new Array<Pixel>();
@@ -83,15 +80,24 @@ export class PuzzlegamePage implements OnInit {
     
   }
   private checkSelectedWord(): void {
+    if (this.currentSelectedQueue.length === 0) {
+      return;
+    }
     //check if the word is valid
     if(true) {
       const pixelsFound:Pixel[] = [];
       this.currentSelectedQueue.forEach( pix => {
         const foundPix = this.allPixles.find( p => p.id === pix.id);
+        foundPix.directionType = pix.directionType;
         pixelsFound.push(foundPix);
       });
-
-      this.boardPixelsFound.push(new BoardPixel(pixelsFound));
+      const newPixelBoard = new BoardPixel(pixelsFound);
+      newPixelBoard.mark = new highlight();
+      this.boardPixelsFound.push(newPixelBoard);
+      
+      this.highlightOnBoard(newPixelBoard);
+      console.log('Highlight Board => ', this.boardPixelsFound);
+      
     } else {
       
     }
@@ -134,6 +140,25 @@ export class PuzzlegamePage implements OnInit {
               )
              )
 
+          } else if (dir === DirectionType.horizontalRight) { 
+            wordProxy.mark.end = new Line (
+              new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y),
+              new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth) 
+             );
+             wordProxy.mark.top = [];
+             wordProxy.mark.top.push(
+             new Line(
+               new Point2D(wordProxy.words[0].position.x, wordProxy.words[0].position.y - this.cellWidth),
+               new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
+             )
+           );
+           wordProxy.mark.bottom = [];
+           wordProxy.mark.bottom.push(
+            new Line(
+              new Point2D(wordProxy.words[0].position.x, wordProxy.words[0].position.y),
+              new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth, wordProxy.words[wordProxy.words.length-1].position.y)
+            )
+           )
           } else if (dir === DirectionType.diagonalUpRight || dir === DirectionType.diagonalDownRight) {
             wordProxy.mark.end = new Line(
                           new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth , wordProxy.words[wordProxy.words.length-1].position.y),
@@ -260,40 +285,40 @@ export class PuzzlegamePage implements OnInit {
     } else if (dir === DirectionType.diagonalDownLeft) {
       wordProxy.mark.start = new Line(
         new Point2D(wordProxy.mark[0].position.x + this.cellWidth, wordProxy.words[0].position.y),
-        new Point2D(wordProxy.words[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+        new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y - this.cellWidth)
       );
       this.selectionCoords.end = new Line(
-        new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
-        new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x , this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+        new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y),
+        new Point2D(wordProxy.words[wordProxy.words.length-1].position.x , wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
       );
-      this.selectionCoords.bottom = [];
-      this.selectionCoords.bottom.push(
+      wordProxy.mark.bottom = [];
+      wordProxy.mark.bottom.push(
         new Line(
-         new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth,this.currentSelectedQueue[0].position.y),
-         new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y)
+         new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y),
+         new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y)
         ),
         new Line(
-         new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y),
-         new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth * .50 , this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+         new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y),
+         new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth * .50 , wordProxy.words[wordProxy.words.length-1].position.y)
         ),
         new Line(
-         new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth * .50, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y),
-         new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x,this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+         new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth * .50, wordProxy.words[wordProxy.words.length-1].position.y),
+         new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y)
         )
      );
-     this.selectionCoords.top = [];
-      this.selectionCoords.top.push(
+     wordProxy.mark.top = [];
+     wordProxy.mark.top.push(
         new Line(
-          new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
-          new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth)
+          new Point2D(wordProxy.words[0].position.x + this.cellWidth, wordProxy.words[0].position.y - this.cellWidth),
+          new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y - this.cellWidth)
         ),
         new Line(
-          new Point2D(this.currentSelectedQueue[0].position.x + this.currentSelectedQueue[0].largeWidth * .20, this.currentSelectedQueue[0].position.y - this.currentSelectedQueue[0].largeWidth),
-          new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth * .50, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+          new Point2D(wordProxy.words[0].position.x + this.cellWidth * .20, wordProxy.words[0].position.y - this.cellWidth),
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth * .50, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
         ),
         new Line(
-          new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x + this.currentSelectedQueue[0].largeWidth *.50, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth),
-          new Point2D(this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.x, this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y - this.currentSelectedQueue[0].largeWidth)
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x + this.cellWidth *.50, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth),
+          new Point2D(wordProxy.words[wordProxy.words.length-1].position.x, wordProxy.words[wordProxy.words.length-1].position.y - this.cellWidth)
         )
       )
     }
@@ -302,11 +327,12 @@ export class PuzzlegamePage implements OnInit {
   private setUpSelectionFuncs(): void {
     this.selectionFuncs.push(
       () => {
-        const source = timer(2000);
+        const source = timer(3000);
         this.subscriptionTimer = source.subscribe(val => {
           console.log(val);
           this.checkSelectedWord();
         });
+        return true;
       },
       () => {
         if (this.currentSelectedQueue.length >= 2) {
@@ -571,6 +597,26 @@ export class PuzzlegamePage implements OnInit {
       }
     )
   }
+  private displayBoardPicks(): void {
+    this.context.beginPath();
+    this.boardPixelsFound.forEach(word => {
+      this.context.moveTo(word.mark.start.start.x, word.mark.start.start.y);
+      this.context.lineTo(word.mark.start.end.x, word.mark.start.end.y);
+      word.mark.top.forEach((l) => {
+          this.context.moveTo(l.start.x, l.start.y);
+          this.context.lineTo(l.end.x, l.end.y);
+      });
+      word.mark.bottom.forEach((l) => {
+      
+        this.context.moveTo(l.start.x, l.start.y);
+        this.context.lineTo(l.end.x, l.end.y);
+      
+       });
+       this.context.moveTo(word.mark.end.start.x, word.mark.end.start.y);
+       this.context.lineTo(word.mark.end.end.x, word.mark.end.end.y);
+       this.context.stroke();
+    });
+  }
   private displaySelectionsByUser(): void {
     if (this.selectionCoords && !this.selectionCoords.start) {
       return;
@@ -622,6 +668,7 @@ export class PuzzlegamePage implements OnInit {
     this.statusMove = true;
     this.statusHightlight = false;
     this.inLargeMode = false;
+    this.displayBoardPicks();
     this.throwToggleStatus();
   }
   private buildSections(): void {
@@ -786,7 +833,7 @@ export class PuzzlegamePage implements OnInit {
         this.userSelections(currPos);
         this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
         this.largeLettersInit();
-        console.log('Current Selection Queue =>', this.currentSelectedQueue, this.currentVisualQueue.length);
+        console.log('Current Selection Queue =>', this.currentSelectedQueue);
         this.processActionQueue(0);
         this.displaySelectionsByUser();
       }
@@ -994,7 +1041,7 @@ export class PuzzlegamePage implements OnInit {
         originalBlock[i].red,
         originalBlock[i].green,
         originalBlock[i].blue,
-        i,
+        originalBlock[i].id,
         new Point2D(rect.x * newWidth + translateX,rect.y * newWidth + translateY),
         newWidth)
       )
