@@ -1,0 +1,14 @@
+body {
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+#sig-canvas {
+    border: 2px dotted #CCCCCC;
+    border-radius: 5px;
+    cursor: crosshair;
+}
+
+#sig-dataUrl {
+    width: 100%;
+}

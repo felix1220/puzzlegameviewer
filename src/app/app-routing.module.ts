@@ -19,6 +19,10 @@ const routes: Routes = [
     path: 'puzzlegame',
     loadChildren: () => import('./puzzlegame/puzzlegame.module').then( m => m.PuzzlegamePageModule)
   },
+  {
+    path: 'finger-draw',
+    loadChildren: () => import('./finger-draw/finger-draw.module').then( m => m.FingerDrawPageModule)
+  },
 ];
 
 @NgModule({
