@@ -23,6 +23,10 @@ const routes: Routes = [
     path: 'finger-draw',
     loadChildren: () => import('./finger-draw/finger-draw.module').then( m => m.FingerDrawPageModule)
   },
+  {
+    path:'game-view',
+    loadChildren: () => import('./game-view/game-view.module').then(m => m.GameViewPageModule)
+  }
 ];
 
 @NgModule({
