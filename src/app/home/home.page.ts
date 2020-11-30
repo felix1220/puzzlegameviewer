@@ -36,6 +36,6 @@ export class HomePage implements OnInit, OnDestroy{
       this.nav.navigateForward(`/details/${event.event.id}`);
     }
     goPuzzle(): void {
-      this.nav.navigateForward('/finger-draw');
+      this.nav.navigateForward('/game-view');
     }
 }

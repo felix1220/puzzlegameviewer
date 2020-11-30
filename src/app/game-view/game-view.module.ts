@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 
 import { IonicModule } from '@ionic/angular';
 
-import { FingerDrawPageRoutingModule } from './finger-draw-routing.module';
+import { GameViewPageRoutingModule } from './game-view-routing.module';
 
 import { GameViewPage } from './game-view.component';
 
@@ -13,7 +13,7 @@ import { GameViewPage } from './game-view.component';
     CommonModule,
     FormsModule,
     IonicModule,
-    FingerDrawPageRoutingModule
+    GameViewPageRoutingModule
   ],
   declarations: [GameViewPage]
 })

@@ -6,4 +6,5 @@ export interface Puzzle {
     name: string;
     modulus: number;
     sections: string[];
+    sectionHash: any;
 }

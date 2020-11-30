@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import {AngularFirestore} from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { Puzzle } from '../models/puzzle';
-import {first, map} from 'rxjs/operators';
+import {first, map, tap} from 'rxjs/operators';
 import { convertSnaps } from './db-utils';
 
 @Injectable({
@@ -17,6 +17,7 @@ import { convertSnaps } from './db-utils';
         )
         .snapshotChanges()
         .pipe(
+            tap( data => console.log('The tap data => ', data)),
             map(snaps => convertSnaps<Puzzle>(snaps)),
             first()
         )
