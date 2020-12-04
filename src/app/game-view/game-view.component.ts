@@ -94,6 +94,7 @@ export class GameViewComponent implements OnInit {
         this.displayLargeLetters(this.sectionPicked);
         this.statusMove = true;
         this.statusHighlight = false;
+        
        
       }
     
