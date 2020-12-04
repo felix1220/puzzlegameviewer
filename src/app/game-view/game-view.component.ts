@@ -12,7 +12,7 @@ import { PuzzleService } from '../services/puzzle.service';
   templateUrl: './game-view.component.html',
   styleUrls: ['./game-view.component.scss']
 })
-export class GameViewPage implements OnInit, OnDestroy {
+export class GameViewComponent implements OnInit {
 
   canvasRef :HTMLCanvasElement;
   puzzleSubscribe:Subscription;
@@ -79,7 +79,7 @@ export class GameViewPage implements OnInit, OnDestroy {
       if(this.statusMove && !this.inLargeMode) {
         this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
         this.showStandardMode();
-        this.initialDown = new Point2D(pt.x, pt.y);
+        
        
       }
       if(this.statusMove && this.inLargeMode) {
@@ -91,11 +91,13 @@ export class GameViewPage implements OnInit, OnDestroy {
         console.log('Section found => ', this.sectionPicked);
         this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
         this.setUpLargeLettersPos(this.sectionPicked);
+        this.displayLargeLetters(this.sectionPicked);
         this.statusMove = true;
         this.statusHighlight = false;
+       
       }
     
-
+      this.initialDown = new Point2D(pt.x, pt.y);
     }
     this.canvasRef.onmousemove = (evt) => {
       const pt = this.getMousePos(evt);
@@ -155,84 +157,94 @@ export class GameViewPage implements OnInit, OnDestroy {
     let hashFunc = this.localPuzzles[0].sectionHash[startingRect.key];
     this.largeHash = {};
     let sectionResult = hashFunc(BlockType.center);
-    this.displayLargeLetters(sectionResult);
+   // this.displayLargeLetters(sectionResult);
     this.largeHash[startingRect.key] = {
                                           ...sectionResult
                                       }
     const keyArr = startingRect.key.split('-');
-    let col = +keyArr[0];
-    let row = +keyArr[1];
+    let row = +keyArr[0];
+    let col = +keyArr[1];
     //top
-    if(this.localPuzzles[0].sectionHash[col + '-' + (row-1)]) {
-      hashFunc = this.localPuzzles[0].sectionHash[col + '-' + (row-1)];
+    if(this.localPuzzles[0].sectionHash[(row-1) + '-' + col]) {
+      hashFunc = this.localPuzzles[0].sectionHash[(row-1) + '-' + col];
       sectionResult = hashFunc(BlockType.top);
-      this.displayLargeLetters(sectionResult);
-      this.largeHash[col + '-' + (row-1)] = {
+     // this.displayLargeLetters(sectionResult);
+      this.largeHash[(row-1) + '-' + col] = {
                                               ...sectionResult
                                             }
+      console.log('Top =>' , (row-1) + '-' + col);
     }
     //top right
-    if(this.localPuzzles[0].sectionHash[(col+1) + '-' + (row-1)]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(col+1) + '-' + (row-1)];
+    if(this.localPuzzles[0].sectionHash[(row-1) + '-' + (col+1)]) {
+      hashFunc = this.localPuzzles[0].sectionHash[(row-1) + '-' + (col+1)];
       sectionResult = hashFunc(BlockType.rightTop);
-      this.displayLargeLetters(sectionResult);
-      this.largeHash[(col+1) + '-' + (row-1)] = {
+      // this.displayLargeLetters(sectionResult);
+      this.largeHash[(row-1) + '-' + (col+1)] = {
                                              ...sectionResult
                                             }
+       console.log('Top Right => ' , (row-1) + '-' + (col+1));
     }
     //top left
-    if(this.localPuzzles[0].sectionHash[(col-1) + '-' + (row-1)]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(col-1) + '-' + (row-1)];
+    if(this.localPuzzles[0].sectionHash[(row-1) + '-' + (col-1)]) {
+      hashFunc = this.localPuzzles[0].sectionHash[(row-1) + '-' + (col-1)];
       sectionResult = hashFunc(BlockType.leftTop);
-      this.displayLargeLetters(sectionResult);
-      this.largeHash[(col-1) + '-' + (row-1)] = {
+     // this.displayLargeLetters(sectionResult);
+      this.largeHash[(row-1) + '-' + (col-1)] = {
                                                  ...sectionResult
                                                 }
+       console.log('Top Left => ' , (row-1) + '-' + (col-1));
+                                              
     }
     //right
-    if(this.localPuzzles[0].sectionHash[(col+1) + '-' + row]) {
+    if(this.localPuzzles[0].sectionHash[row + '-' + (col+1)]) {
       hashFunc = this.localPuzzles[0].sectionHash[(col+1) + '-' + row];
       sectionResult = hashFunc(BlockType.right);
-      this.displayLargeLetters(sectionResult);
+     // this.displayLargeLetters(sectionResult);
       this.largeHash[(col+1) + '-' + row] = {
                                               ...sectionResult
                                           }
+      console.log('Right => ' , (col+1) + '-' + row);
     }
     //left
-    if(this.localPuzzles[0].sectionHash[(col-1) + '-' + row]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(col-1) + '-' + row];
+    if(this.localPuzzles[0].sectionHash[row + '-' + (col-1)]) {
+      //debugger;
+      hashFunc = this.localPuzzles[0].sectionHash[row + '-' + (col-1)];
       sectionResult = hashFunc(BlockType.left);
-      this.displayLargeLetters(sectionResult);
-      this.largeHash[(col-1) + '-' + row] = {
+      // this.displayLargeLetters(sectionResult);
+      this.largeHash[row + '-' + (col-1)] = {
                                              ...sectionResult
                                             }
+       console.log('Left => ' , row + '-' + (col-1));
     }
     //bottom
-    if(this.localPuzzles[0].sectionHash[col + '-' + (row+1)]) {
-      hashFunc = this.localPuzzles[0].sectionHash[col + '-' + (row+1)];
+    if(this.localPuzzles[0].sectionHash[(row+1) + '-' + col]) {
+      hashFunc = this.localPuzzles[0].sectionHash[(row+1) + '-' + col];
       sectionResult = hashFunc(BlockType.bottom);
-      this.displayLargeLetters(sectionResult);
-      this.largeHash[col + '-' + (row+1)] = {
+     //  this.displayLargeLetters(sectionResult);
+      this.largeHash[(row+1) + '-' + col] = {
                                                ...sectionResult
                                             }
+       console.log('Bottom => ' ,(row+1) + '-' + col);
     }
     //right bottom
-    if(this.localPuzzles[0].sectionHash[(col+1) + '-' + (row+1)]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(col+1) + '-' + (row+1)];
+    if(this.localPuzzles[0].sectionHash[(row+1) + '-' + (col+1)]) {
+      hashFunc = this.localPuzzles[0].sectionHash[(row+1) + '-' + (col+1)];
       sectionResult = hashFunc(BlockType.bottomRight);
-      this.displayLargeLetters(sectionResult);
-      this.largeHash[(col+1) + '-' + (row+1)] = {
+     // this.displayLargeLetters(sectionResult);
+      this.largeHash[(row+1) + '-' + (col+1)] = {
                                               ...sectionResult
                                               }
+       console.log('Bottom Right => ' , (row+1) + '-' + (col+1));
     }
     //left bottom
-    if(this.localPuzzles[0].sectionHash[(col-1) + '-' + (row+1)]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(col-1) + '-' + (row+1)];
+    if(this.localPuzzles[0].sectionHash[(row+1) + '-' + (col-1)]) {
+      hashFunc = this.localPuzzles[0].sectionHash[(row+1) + '-' + (col-1)];
       sectionResult = hashFunc(BlockType.bottomLeft);
-      this.displayLargeLetters(sectionResult);
-      this.largeHash[(col-1) + '-' + (row+1)] = {
+      // this.displayLargeLetters(sectionResult);
+      this.largeHash[(row+1) + '-' + (col-1)] = {
                                                   ...sectionResult
                                                  }
+       console.log('Bottom Left => ' , (row+1) + '-' + (col-1));
     }
 
   }
