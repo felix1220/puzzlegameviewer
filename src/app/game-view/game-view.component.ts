@@ -5,14 +5,16 @@ import { Pixel } from '../models/pixel';
 import { Point2D } from '../models/point';
 import { Puzzle } from '../models/puzzle';
 import { PuzzleService } from '../services/puzzle.service';
-
+import { DirectionType } from '../models/directions';
+import { highlight } from '../models/highlight';
+import { Line } from '../models/line';
 
 @Component({
   selector: 'app-game-view',
   templateUrl: './game-view.component.html',
   styleUrls: ['./game-view.component.scss']
 })
-export class GameViewComponent implements OnInit {
+export class GameViewPage implements OnInit {
 
   canvasRef :HTMLCanvasElement;
   puzzleSubscribe:Subscription;
@@ -59,6 +61,19 @@ export class GameViewComponent implements OnInit {
         // console.log('content bytes =>', this.localPuzzles);
     });
   }
+  buildHighlighter(pixels:Pixel[]): Function {
+    const lastPixel = pixels[pixels.length-1];
+    const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+    const selectDir = lastPixel.directionType;
+    const highlightStruct:highlight = new highlight();
+    if( selectDir === DirectionType.horizontalRight || selectDir === DirectionType.diagonalUpRight ||
+        selectDir === DirectionType.diagonalDownRight || selectDir === DirectionType.horizontalLeft) {
+          highlightStruct.start = new Line(
+            new Point2D(pixels[0].position.x, pixels[0].position.y),
+            new Point2D(pixels[0].position.x, pixels[0].position.y - largeWidth)
+          );
+     }
+  }
   backToMainScreen(): void {
     this.inLargeMode = false;
     this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
@@ -94,6 +109,7 @@ export class GameViewComponent implements OnInit {
         this.displayLargeLetters(this.sectionPicked);
         this.statusMove = true;
         this.statusHighlight = false;
+        this.throwToggleStatus();
         
        
       }
@@ -142,6 +158,9 @@ export class GameViewComponent implements OnInit {
         }
         
       }
+      if(this.inLargeMode && this.statusHighlight){
+
+      }
     }
   }
   private updateLargeDeltas(deltaX: number, deltaY: number) {
@@ -166,86 +185,94 @@ export class GameViewComponent implements OnInit {
     let row = +keyArr[0];
     let col = +keyArr[1];
     //top
-    if(this.localPuzzles[0].sectionHash[(row-1) + '-' + col]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(row-1) + '-' + col];
+    const topKey = (row-1) + '-' + col;
+    if(this.localPuzzles[0].sectionHash[topKey]) {
+      hashFunc = this.localPuzzles[0].sectionHash[topKey];
       sectionResult = hashFunc(BlockType.top);
      // this.displayLargeLetters(sectionResult);
-      this.largeHash[(row-1) + '-' + col] = {
+      this.largeHash[topKey] = {
                                               ...sectionResult
                                             }
-      console.log('Top =>' , (row-1) + '-' + col);
+      console.log('Top =>' , topKey);
     }
     //top right
-    if(this.localPuzzles[0].sectionHash[(row-1) + '-' + (col+1)]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(row-1) + '-' + (col+1)];
+    const topRightKey = (row-1) + '-' + (col+1);
+    if(this.localPuzzles[0].sectionHash[topRightKey]) {
+      hashFunc = this.localPuzzles[0].sectionHash[topRightKey];
       sectionResult = hashFunc(BlockType.rightTop);
       // this.displayLargeLetters(sectionResult);
-      this.largeHash[(row-1) + '-' + (col+1)] = {
+      this.largeHash[topRightKey] = {
                                              ...sectionResult
                                             }
-       console.log('Top Right => ' , (row-1) + '-' + (col+1));
+       console.log('Top Right => ' , topRightKey);
     }
     //top left
-    if(this.localPuzzles[0].sectionHash[(row-1) + '-' + (col-1)]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(row-1) + '-' + (col-1)];
+    const topLeftKey = (row-1) + '-' + (col-1);
+    if(this.localPuzzles[0].sectionHash[topLeftKey]) {
+      hashFunc = this.localPuzzles[0].sectionHash[topLeftKey];
       sectionResult = hashFunc(BlockType.leftTop);
      // this.displayLargeLetters(sectionResult);
-      this.largeHash[(row-1) + '-' + (col-1)] = {
+      this.largeHash[topLeftKey] = {
                                                  ...sectionResult
                                                 }
-       console.log('Top Left => ' , (row-1) + '-' + (col-1));
+       console.log('Top Left => ' , topLeftKey);
                                               
     }
     //right
-    if(this.localPuzzles[0].sectionHash[row + '-' + (col+1)]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(col+1) + '-' + row];
+    const rightKey = row + '-' + (col+1);
+    if(this.localPuzzles[0].sectionHash[rightKey]) {
+      hashFunc = this.localPuzzles[0].sectionHash[rightKey];
       sectionResult = hashFunc(BlockType.right);
      // this.displayLargeLetters(sectionResult);
-      this.largeHash[(col+1) + '-' + row] = {
+      this.largeHash[rightKey] = {
                                               ...sectionResult
                                           }
-      console.log('Right => ' , (col+1) + '-' + row);
+      console.log('Right => ' , rightKey);
     }
     //left
-    if(this.localPuzzles[0].sectionHash[row + '-' + (col-1)]) {
+    const leftKey = row + '-' + (col-1);
+    if(this.localPuzzles[0].sectionHash[leftKey]) {
       //debugger;
-      hashFunc = this.localPuzzles[0].sectionHash[row + '-' + (col-1)];
+      hashFunc = this.localPuzzles[0].sectionHash[leftKey];
       sectionResult = hashFunc(BlockType.left);
       // this.displayLargeLetters(sectionResult);
-      this.largeHash[row + '-' + (col-1)] = {
+      this.largeHash[leftKey] = {
                                              ...sectionResult
                                             }
-       console.log('Left => ' , row + '-' + (col-1));
+       console.log('Left => ' , leftKey);
     }
     //bottom
-    if(this.localPuzzles[0].sectionHash[(row+1) + '-' + col]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(row+1) + '-' + col];
+    const bottomKey = (row+1) + '-' + col
+    if(this.localPuzzles[0].sectionHash[bottomKey]) {
+      hashFunc = this.localPuzzles[0].sectionHash[bottomKey];
       sectionResult = hashFunc(BlockType.bottom);
      //  this.displayLargeLetters(sectionResult);
-      this.largeHash[(row+1) + '-' + col] = {
+      this.largeHash[bottomKey] = {
                                                ...sectionResult
                                             }
-       console.log('Bottom => ' ,(row+1) + '-' + col);
+       console.log('Bottom => ' , bottomKey);
     }
     //right bottom
-    if(this.localPuzzles[0].sectionHash[(row+1) + '-' + (col+1)]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(row+1) + '-' + (col+1)];
+    const rightBottomKey = (row+1) + '-' + (col+1);
+    if(this.localPuzzles[0].sectionHash[rightBottomKey]) {
+      hashFunc = this.localPuzzles[0].sectionHash[rightBottomKey];
       sectionResult = hashFunc(BlockType.bottomRight);
      // this.displayLargeLetters(sectionResult);
-      this.largeHash[(row+1) + '-' + (col+1)] = {
+      this.largeHash[rightBottomKey] = {
                                               ...sectionResult
                                               }
-       console.log('Bottom Right => ' , (row+1) + '-' + (col+1));
+       console.log('Bottom Right => ' , rightBottomKey);
     }
     //left bottom
-    if(this.localPuzzles[0].sectionHash[(row+1) + '-' + (col-1)]) {
-      hashFunc = this.localPuzzles[0].sectionHash[(row+1) + '-' + (col-1)];
+    const leftBottomKey = (row+1) + '-' + (col-1)
+    if(this.localPuzzles[0].sectionHash[leftBottomKey]) {
+      hashFunc = this.localPuzzles[0].sectionHash[leftBottomKey];
       sectionResult = hashFunc(BlockType.bottomLeft);
       // this.displayLargeLetters(sectionResult);
-      this.largeHash[(row+1) + '-' + (col-1)] = {
+      this.largeHash[leftBottomKey] = {
                                                   ...sectionResult
                                                  }
-       console.log('Bottom Left => ' , (row+1) + '-' + (col-1));
+       console.log('Bottom Left => ' , leftBottomKey);
     }
 
   }
@@ -312,7 +339,7 @@ export class GameViewComponent implements OnInit {
         col = 0;
         row++;
       }
-      const filterdSec = this.allPixles.filter( pix => pix.position.x >= section[0].x && pix.position.x <= section[2].x - this.cellWidth && pix.position.y >= section[0].y && pix.position.y <= section[2].y)
+      const filterdSec = this.allPixles.filter( pix => pix.position.x >= section[0].x && pix.position.x <= section[2].x - this.cellWidth && pix.position.y >= section[0].y && pix.position.y <= section[2].y - this.cellWidth)
       // this.adjSections[row + '-' + col] = filterdSec;
       const f = (key:string, sec:Pixel[]) => {
       const newWidth = Math.floor(this.canvasRef.width / this.numOfCols);
@@ -453,6 +480,23 @@ export class GameViewComponent implements OnInit {
           this.context.stroke();
     })
     this.context.restore();
+  }
+  throwToggleStatus(): void {
+    const moveElem = document.getElementById('moveCanvas');
+    const highlightElem = document.getElementById('highlightCanvas');
+    if(this.statusMove) {
+      
+      moveElem.classList.add('highlight');
+      moveElem.classList.remove('pale');
+      highlightElem.classList.add('pale');
+      highlightElem.classList.remove('hightlight');
+    } else {
+     
+      highlightElem.classList.add('highlight');
+      highlightElem.classList.remove('pale');
+      moveElem.classList.remove('highlight');
+      moveElem.classList.add('pale');
+    }
   }
   toggleStatus(event): void {
     
