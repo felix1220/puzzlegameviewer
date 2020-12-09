@@ -61,18 +61,224 @@ export class GameViewPage implements OnInit {
         // console.log('content bytes =>', this.localPuzzles);
     });
   }
-  buildHighlighter(pixels:Pixel[]): Function {
-    const lastPixel = pixels[pixels.length-1];
-    const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
-    const selectDir = lastPixel.directionType;
+  buildHighlighter(positions: Point2D[], selectDir:DirectionType, largeWidth: number): highlight {
+    
+  
     const highlightStruct:highlight = new highlight();
+    const first = positions[0];
+    const last = positions[positions.length-1];
+
     if( selectDir === DirectionType.horizontalRight || selectDir === DirectionType.diagonalUpRight ||
         selectDir === DirectionType.diagonalDownRight || selectDir === DirectionType.horizontalLeft) {
           highlightStruct.start = new Line(
-            new Point2D(pixels[0].position.x, pixels[0].position.y),
-            new Point2D(pixels[0].position.x, pixels[0].position.y - largeWidth)
+            new Point2D(first.x, first.y),
+            new Point2D(first.x, first.y - largeWidth)
           );
+          if (selectDir === DirectionType.horizontalLeft) {
+            highlightStruct.start = new Line(
+              new Point2D(first.x + largeWidth, first.y),
+              new Point2D(first.x + largeWidth, first.y - largeWidth)
+            );
+            highlightStruct.end = new Line (
+              new Point2D(last.x, last.y),
+              new Point2D(last.x, last.y - largeWidth) 
+             );
+             highlightStruct.top = [];
+             highlightStruct.top.push(
+               new Line(
+                 new Point2D(first.x + largeWidth, first.y - largeWidth),
+                 new Point2D(last.x, last.y - largeWidth)
+               )
+             );
+             highlightStruct.bottom = [];
+             highlightStruct.bottom.push(
+                  new Line(
+                    new Point2D(first.x + largeWidth, first.y),
+                    new Point2D(last.x, last.y)
+                  )
+                )
+          } else if (selectDir === DirectionType.horizontalRight) { 
+            highlightStruct.end = new Line (
+              new Point2D(last.x + largeWidth, last.y),
+              new Point2D(last.x + largeWidth, last.y - largeWidth)
+            );
+            highlightStruct.top = [];
+            highlightStruct.top.push(
+              new Line(
+                new Point2D(first.x, first.y - largeWidth),
+                new Point2D(last.x + largeWidth, last.y - largeWidth)
+              )
+            );
+            highlightStruct.bottom = [];
+            highlightStruct.bottom.push(
+              new Line(
+                new Point2D(first.x, first.y),
+                new Point2D(last.x + largeWidth, last.y)
+              )
+            );
+          } else if(selectDir === DirectionType.diagonalUpRight || selectDir === DirectionType.diagonalDownRight) {
+            highlightStruct.end =new Line(
+              new Point2D(last.x + largeWidth, last.y),
+              new Point2D(last.x + largeWidth, last.y - largeWidth)
+            )
+            highlightStruct.top = [];
+            highlightStruct.top.push(
+              new Line(
+                new Point2D(first.x, first.y - largeWidth),
+                new Point2D(first.x + largeWidth *.20, first.y - largeWidth)
+              ),
+              new Line(
+                new Point2D(first.x + largeWidth * .20, first.y - largeWidth),
+                new Point2D(last.x + largeWidth * .20, last.y - largeWidth)
+              ),
+              new Line(
+                new Point2D(last.x, last.y - largeWidth),
+                new Point2D(last.x + largeWidth, last.y - largeWidth)
+              )
+            );
+            highlightStruct.bottom = [];
+            highlightStruct.bottom.push(
+              new Line(
+                new Point2D(first.x, first.y),
+                new Point2D(first.x + largeWidth * .20, first.y)
+              ),
+              new Line(
+                new Point2D(first.x + largeWidth * .20, first.y),
+                new Point2D(last.x, last.y)
+              ),
+              new Line(
+                new Point2D(last.x, last.y),
+                new Point2D(last.x + largeWidth, last.y)
+              )
+            )
+          }
+     } else if( selectDir === DirectionType.verticalDown) {
+       highlightStruct.start = new Line(
+         new Point2D(first.x, first.y - largeWidth),
+         new Point2D(first.x + largeWidth, first.y - largeWidth)
+       );
+       highlightStruct.end = new Line(
+        new Point2D(last.x, last.y),
+        new Point2D(last.x + largeWidth, last.y)
+       );
+       highlightStruct.top = [];
+       highlightStruct.top.push(
+        new Line(
+          new Point2D(first.x, first.y - largeWidth),
+          new Point2D(last.x, last.y)
+        )
+       );
+       highlightStruct.bottom = [];
+       highlightStruct.bottom.push(
+        new Line(
+          new Point2D(first.x + largeWidth, first.y - largeWidth),
+          new Point2D(last.x + largeWidth, last.y)
+        )
+       );
+     } else if(selectDir === DirectionType.verticalUp) {
+      highlightStruct.start = new Line(
+        new Point2D(first.x, first.y),
+        new Point2D(first.x + largeWidth, first.y)
+      );
+      highlightStruct.end = new Line(
+        new Point2D(last.x, last.y - largeWidth),
+         new Point2D(last.x + largeWidth, last.y - largeWidth)
+      );
+      highlightStruct.top = [];
+      highlightStruct.top.push(
+        new Line(
+          new Point2D(first.x, first.y),
+          new Point2D(last.x, last.y - largeWidth)
+        )
+      )
+      highlightStruct.bottom = [];
+      highlightStruct.bottom.push(
+                new Line(
+                  new Point2D(first.x + largeWidth, first.y),
+                  new Point2D(last.x + largeWidth, last.y - largeWidth)
+                )
+              )
+     }  else if (selectDir === DirectionType.diagonalUpLeft) {
+        highlightStruct.start = new Line(
+          new Point2D(first.x + largeWidth, first.y),
+          new Point2D(first.x + largeWidth, first.y - largeWidth)
+        );
+        highlightStruct.end = new Line(
+          new Point2D(last.x, last.y),
+          new Point2D(last.x , last.y - largeWidth)
+        );
+        highlightStruct.bottom = [];
+        highlightStruct.bottom.push(
+          new Line(
+            new Point2D(first.x + largeWidth, first.y),
+            new Point2D( first.x + largeWidth * .20, first.y)
+          ),
+          new Line(
+            new Point2D(first.x + largeWidth * .20, first.y),
+            new Point2D(last.x + largeWidth, last.y)
+           ),
+           new Line(
+            new Point2D(last.x + largeWidth, last.y),
+            new Point2D(last.x,last.y)
+           )
+        );
+        highlightStruct.top = [];
+        highlightStruct.top.push(
+          new Line(
+            new Point2D(first.x + largeWidth, first.y - largeWidth),
+            new Point2D(first.x + largeWidth * .20, first.y - largeWidth)
+          ),
+          new Line(
+            new Point2D(first.x + largeWidth * .20, first.y - largeWidth),
+            new Point2D(last.x + largeWidth, last.y - largeWidth)
+          ),
+          new Line(
+            new Point2D(last.x + largeWidth, last.y - largeWidth),
+            new Point2D(last.x, last.y - largeWidth)
+          )
+
+        );
+     } else if (selectDir === DirectionType.diagonalDownLeft) {
+        highlightStruct.start = new Line(
+                new Point2D(first.x + largeWidth, first.y),
+                new Point2D(first.x + largeWidth, first.y - largeWidth)
+        );
+        highlightStruct.end = new Line(
+          new Point2D(last.x, last.y),
+          new Point2D(last.x , last.y - largeWidth)
+        );
+        highlightStruct.bottom = [];
+        highlightStruct.bottom.push(
+          new Line(
+           new Point2D(first.x + largeWidth, first.y),
+           new Point2D(first.x + largeWidth * .20, first.y)
+          ),
+          new Line(
+           new Point2D(first.x + largeWidth * .20, first.y),
+           new Point2D(last.x + largeWidth * .50 , this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+          ),
+          new Line(
+           new Point2D(last.x + largeWidth * .50, last.y),
+           new Point2D(last.x, last.y)
+          )
+       );
+       highlightStruct.top = [];
+       highlightStruct.top.push(
+         new Line(
+           new Point2D(first.x + largeWidth, first.y - largeWidth),
+           new Point2D(first.x + largeWidth * .20, first.y - largeWidth)
+         ),
+         new Line(
+           new Point2D(first.x + largeWidth * .20, first.y - largeWidth),
+           new Point2D(last.x + largeWidth * .50, last.y - largeWidth)
+         ),
+         new Line(
+           new Point2D(last.x + largeWidth *.50, last.y - largeWidth),
+           new Point2D(last.x, last.y - largeWidth)
+         )
+       );
      }
+     return highlightStruct;
   }
   backToMainScreen(): void {
     this.inLargeMode = false;
