@@ -8,6 +8,7 @@ import { PuzzleService } from '../services/puzzle.service';
 import { DirectionType } from '../models/directions';
 import { highlight } from '../models/highlight';
 import { Line } from '../models/line';
+import { highlighter } from '../models/highlighter';
 
 @Component({
   selector: 'app-game-view',
@@ -35,6 +36,9 @@ export class GameViewPage implements OnInit {
   isMouseDown: boolean = false;
   initialDown: Point2D;
   largeHash: any = {};
+  selectDir: DirectionType = DirectionType.None;
+  currSelectionQueue: highlighter;
+  subPuzzlePts: any[] = [];
 
   constructor(private puzzleService: PuzzleService) { 
     this.allPixles = [];
@@ -255,7 +259,7 @@ export class GameViewPage implements OnInit {
           ),
           new Line(
            new Point2D(first.x + largeWidth * .20, first.y),
-           new Point2D(last.x + largeWidth * .50 , this.currentSelectedQueue[this.currentSelectedQueue.length-1].position.y)
+           new Point2D(last.x + largeWidth * .50 , last.y)
           ),
           new Line(
            new Point2D(last.x + largeWidth * .50, last.y),
@@ -290,6 +294,69 @@ export class GameViewPage implements OnInit {
         
     //this.displaySectionOutline();
   }
+  private withInBounds(start: Point2D, end: Point2D, checkWidth: number): boolean {
+    const midX1 = (start.x + checkWidth) / 2;
+    const midY1 = (start.y + checkWidth) / 2;
+    const midX2 = (end.x + checkWidth) / 2;
+    const midY2 = (end.y + checkWidth) / 2;
+    const a = midX1 - midX2;
+    const b  = midY1 - midY2;
+    const c = Math.floor(Math.sqrt( a*a + b*b ));
+    return c === checkWidth;
+
+  }
+  private findDir(start: Point2D, end: Point2D): DirectionType {
+    let subDir: DirectionType = undefined;
+            if (start.y === end.y && end.x - start.x > 1) {
+              subDir = DirectionType.horizontalRight;
+            } else if (start.y === end.y && end.x - start.x < 0) {
+              subDir = DirectionType.horizontalLeft
+            } else if (start.x === end.x && end.x - start.y < 0) {
+              subDir = DirectionType.verticalUp;
+            }
+            else if (start.x === end.x && end.x - start.y > 1) {
+              subDir = DirectionType.verticalDown;
+            } else if (end.x - start.x > 1 && end.y - start.y < 0) {
+              subDir = DirectionType.diagonalUpRight;
+            } else if (end.x - start.x > 1 && end.y - start.y > 0) {
+              subDir = DirectionType.diagonalDownRight;
+            } else if (end.x - start.x < 0 && end.y - start.y < 0) {
+              subDir = DirectionType.diagonalUpLeft;
+            } else if (end.x - start.x < 0 && end.y - start.y > 0) {
+              subDir = DirectionType.diagonalDownLeft
+            }
+              return subDir;
+  }
+  private userSelections(pos: Point2D): void {
+    const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+    if(!this.currSelectionQueue) {
+      this.currSelectionQueue = new highlighter(this.buildHighlighter);
+      this.currSelectionQueue.points = [];
+      this.currSelectionQueue.ids = [];
+    }
+    this.subPuzzlePts.forEach(pt => {
+      if(pt.position.x < pos.x && pos.x < pt.x + largeWidth && 
+        pt.position.y - largeWidth < pos.y && pos.y < pt.position.y) {
+          if(this.currSelectionQueue.points.length === 0) {
+            this.currSelectionQueue.points.push(pos)
+            this.currSelectionQueue.ids.push(pt.id);
+          } else {
+            const currDir = this.findDir(this.currSelectionQueue.points[this.currSelectionQueue.points.length-1],pos);
+            if( currDir !== DirectionType.None) {
+              if(this.currSelectionQueue.dir && this.currSelectionQueue.dir === currDir &&
+                this.withInBounds(this.currSelectionQueue.points[this.currSelectionQueue.points.length-1], pos, largeWidth)) {
+                this.currSelectionQueue.points.push(pos);
+                this.currSelectionQueue.ids.push(pt.id);
+              } else if(!this.currSelectionQueue.dir){
+                this.currSelectionQueue.dir = currDir;
+              } else {
+                //thow error and cleanup
+              }
+            }
+          }
+        }
+    });
+  }
   private loadCanvasMouseEvents(): void {
     this.canvasRef.onmouseup = (evt) => {
       this.isMouseDown = false;
@@ -302,6 +369,9 @@ export class GameViewPage implements OnInit {
         this.showStandardMode();
         
        
+      }
+      if (this.statusHighlight && this.inLargeMode) {
+
       }
       if(this.statusMove && this.inLargeMode) {
         //move large letters
@@ -374,7 +444,7 @@ export class GameViewPage implements OnInit {
       if (this.largeHash.hasOwnProperty(key)){
         this.largeHash[key].translatedPts.forEach(pt => {
           pt.x = pt.x + deltaX;
-          pt.y = pt.y + deltaY
+          pt.y = pt.y + deltaY;
         });
       }
     }
@@ -687,6 +757,24 @@ export class GameViewPage implements OnInit {
     })
     this.context.restore();
   }
+  private loadSubPoints(): void {
+    const width = this.canvasRef.width;
+    const height = this.canvasRef.height;
+
+    for (const key in this.largeHash) {
+      if (this.largeHash.hasOwnProperty(key)){
+        this.largeHash[key].translatedPts.forEach((pt, i) => {
+          if(pt.x > 0 && pt.x < width && pt.y > 0 && pt.y < height) {
+            const partitionPixel = {
+              id:this.largeHash[key].subPixels[i],
+              position: pt
+            }
+            this.subPuzzlePts.push(partitionPixel);
+          }
+        });
+      }
+    }
+  }
   throwToggleStatus(): void {
     const moveElem = document.getElementById('moveCanvas');
     const highlightElem = document.getElementById('highlightCanvas');
@@ -722,6 +810,9 @@ export class GameViewPage implements OnInit {
       moveElem.classList.remove('highlight');
       this.statusMove = false;
       this.statusHighlight = true;
+      if(this.inLargeMode) {
+        this.loadSubPoints();
+      }
       //console.log(' Highlight =>', this.puzzelSections);
     }
      
