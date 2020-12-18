@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 import { BlockType } from '../models/blockTypes';
 import { Pixel } from '../models/pixel';
 import { Point2D } from '../models/point';
@@ -15,7 +15,7 @@ import { highlighter } from '../models/highlighter';
   templateUrl: './game-view.component.html',
   styleUrls: ['./game-view.component.scss']
 })
-export class GameViewPage implements OnInit {
+export class GameViewPage implements OnInit, OnDestroy {
 
   canvasRef :HTMLCanvasElement;
   puzzleSubscribe:Subscription;
@@ -39,6 +39,7 @@ export class GameViewPage implements OnInit {
   selectDir: DirectionType = DirectionType.None;
   currSelectionQueue: highlighter;
   subPuzzlePts: any[] = [];
+  subScriptionTimer: Subscription;
 
   constructor(private puzzleService: PuzzleService) { 
     this.allPixles = [];
@@ -64,6 +65,29 @@ export class GameViewPage implements OnInit {
         
         // console.log('content bytes =>', this.localPuzzles);
     });
+  }
+  private displaySelectionsByUser(selectionCoords: highlight): void {
+    if (selectionCoords && !selectionCoords.start) {
+      return;
+    }
+    this.context.beginPath();
+    this.context.moveTo(selectionCoords.start.start.x, selectionCoords.start.start.y);
+    this.context.lineTo(selectionCoords.start.end.x, selectionCoords.start.end.y);
+         selectionCoords.top.forEach((l) => {
+      
+          this.context.moveTo(l.start.x, l.start.y);
+          this.context.lineTo(l.end.x, l.end.y);
+        
+      });
+        selectionCoords.bottom.forEach((l) => {
+      
+        this.context.moveTo(l.start.x, l.start.y);
+        this.context.lineTo(l.end.x, l.end.y);
+      
+    });
+    this.context.moveTo(selectionCoords.end.start.x, selectionCoords.end.start.y);
+    this.context.lineTo(selectionCoords.end.end.x, selectionCoords.end.end.y);
+    this.context.stroke();
   }
   buildHighlighter(positions: Point2D[], selectDir:DirectionType, largeWidth: number): highlight {
     
@@ -357,6 +381,17 @@ export class GameViewPage implements OnInit {
         }
     });
   }
+  private startTimer(): void {
+    if(!this.currSelectionQueue){
+      return;
+    }
+    const source = timer(3000);
+    this.subScriptionTimer = source.subscribe(val => {
+      console.log(val);
+    
+    });
+
+  }
   private loadCanvasMouseEvents(): void {
     this.canvasRef.onmouseup = (evt) => {
       this.isMouseDown = false;
@@ -371,7 +406,12 @@ export class GameViewPage implements OnInit {
        
       }
       if (this.statusHighlight && this.inLargeMode) {
-
+        this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+        const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+        this.userSelections(pt);
+        this.displayLargeAll();
+        const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
+        this.displaySelectionsByUser(selectObj)
       }
       if(this.statusMove && this.inLargeMode) {
         //move large letters
@@ -435,7 +475,11 @@ export class GameViewPage implements OnInit {
         
       }
       if(this.inLargeMode && this.statusHighlight){
-
+        this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+        const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+        this.displayLargeAll();
+        const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
+        this.displaySelectionsByUser(selectObj)
       }
     }
   }
@@ -820,6 +864,9 @@ export class GameViewPage implements OnInit {
   ngOnDestroy(): void {
     if(this.puzzleSubscribe) {
       this.puzzleSubscribe.unsubscribe();
+    }
+    if(this.subScriptionTimer) {
+      this.subScriptionTimer.unsubscribe();
     }
   }
 
