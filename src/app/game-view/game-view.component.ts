@@ -330,6 +330,7 @@ export class GameViewPage implements OnInit, OnDestroy {
 
   }
   private findDir(start: Point2D, end: Point2D): DirectionType {
+    //debugger;
     let subDir: DirectionType = undefined;
             if (start.y === end.y && end.x - start.x > 1) {
               subDir = DirectionType.horizontalRight;
@@ -353,26 +354,35 @@ export class GameViewPage implements OnInit, OnDestroy {
   }
   private userSelections(pos: Point2D): void {
     const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+    
     if(!this.currSelectionQueue) {
       this.currSelectionQueue = new highlighter(this.buildHighlighter);
       this.currSelectionQueue.points = [];
       this.currSelectionQueue.ids = [];
     }
+    
+    //console.log('All sub points => ', this.subPuzzlePts, pos, largeWidth);
     this.subPuzzlePts.forEach(pt => {
-      if(pt.position.x < pos.x && pos.x < pt.x + largeWidth && 
+      ////debugger;
+      if(pt.position.x < pos.x && pos.x < pt.position.x + largeWidth && 
         pt.position.y - largeWidth < pos.y && pos.y < pt.position.y) {
+          console.log('Check user selection =>', this.currSelectionQueue, pt);
           if(this.currSelectionQueue.points.length === 0) {
-            this.currSelectionQueue.points.push(pos)
+            
+            this.currSelectionQueue.points.push(pt.position)
             this.currSelectionQueue.ids.push(pt.id);
           } else {
-            const currDir = this.findDir(this.currSelectionQueue.points[this.currSelectionQueue.points.length-1],pos);
+            const currDir = this.findDir(this.currSelectionQueue.points[this.currSelectionQueue.points.length-1],pt.position);
             if( currDir !== DirectionType.None) {
               if(this.currSelectionQueue.dir && this.currSelectionQueue.dir === currDir &&
                 this.withInBounds(this.currSelectionQueue.points[this.currSelectionQueue.points.length-1], pos, largeWidth)) {
-                this.currSelectionQueue.points.push(pos);
+                 
+                this.currSelectionQueue.points.push(pt.position);
                 this.currSelectionQueue.ids.push(pt.id);
               } else if(!this.currSelectionQueue.dir){
                 this.currSelectionQueue.dir = currDir;
+                this.currSelectionQueue.points.push(pt.position);
+                this.currSelectionQueue.ids.push(pt.id);
               } else {
                 //thow error and cleanup
               }
@@ -410,8 +420,11 @@ export class GameViewPage implements OnInit, OnDestroy {
         const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
         this.userSelections(pt);
         this.displayLargeAll();
-        const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
-        this.displaySelectionsByUser(selectObj)
+        
+          const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
+          this.displaySelectionsByUser(selectObj);
+        
+       
       }
       if(this.statusMove && this.inLargeMode) {
         //move large letters
@@ -475,11 +488,16 @@ export class GameViewPage implements OnInit, OnDestroy {
         
       }
       if(this.inLargeMode && this.statusHighlight){
-        this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
-        const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
-        this.displayLargeAll();
-        const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
-        this.displaySelectionsByUser(selectObj)
+        if(this.isMouseDown) {
+          this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+          const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+          this.displayLargeAll();
+          if(this.currSelectionQueue && this.currSelectionQueue.points) {
+              const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
+              this.displaySelectionsByUser(selectObj)
+          }
+        }
+        
       }
     }
   }
@@ -808,7 +826,7 @@ export class GameViewPage implements OnInit, OnDestroy {
     for (const key in this.largeHash) {
       if (this.largeHash.hasOwnProperty(key)){
         this.largeHash[key].translatedPts.forEach((pt, i) => {
-          if(pt.x > 0 && pt.x < width && pt.y > 0 && pt.y < height) {
+          if(pt.x >= 0 && pt.x <= width && pt.y >= 0 && pt.y <= height) {
             const partitionPixel = {
               id:this.largeHash[key].subPixels[i],
               position: pt
@@ -869,5 +887,4 @@ export class GameViewPage implements OnInit, OnDestroy {
       this.subScriptionTimer.unsubscribe();
     }
   }
-
 }
