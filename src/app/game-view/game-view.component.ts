@@ -9,6 +9,8 @@ import { DirectionType } from '../models/directions';
 import { highlight } from '../models/highlight';
 import { Line } from '../models/line';
 import { highlighter } from '../models/highlighter';
+import { debugOutputAstAsTypeScript } from '@angular/compiler';
+import { LoaderService } from '../services/loader/loader.service';
 
 @Component({
   selector: 'app-game-view',
@@ -40,17 +42,24 @@ export class GameViewPage implements OnInit, OnDestroy {
   currSelectionQueue: highlighter;
   subPuzzlePts: any[] = [];
   subScriptionTimer: Subscription;
+  displayErrModal: boolean = false;
+  testWord = 'PIIG';
+  allSelections: highlighter[] = [];
+  allSmallSelections: highlighter[] = [];
 
-  constructor(private puzzleService: PuzzleService) { 
+  constructor(private puzzleService: PuzzleService, private loaderSvc: LoaderService) { 
     this.allPixles = [];
     this.initialDown = new Point2D(0,0);
+    this.loaderSvc.create('Loading Puzzle...');
   }
 
   ngOnInit() {
+    // this.loaderSvc.present();
     this.canvasRef = <HTMLCanvasElement>document.getElementById('canvasPuzzle');
     this.context = this.canvasRef.getContext('2d');
     
     this.loadCanvasMouseEvents();
+    this.loadCanvasTouchEvents();
     
      this.puzzleSubscribe = this.puzzleService.loadPuzzles().subscribe( (puzzleData: Puzzle[]) => {
      
@@ -62,7 +71,8 @@ export class GameViewPage implements OnInit, OnDestroy {
         this.sections = this.buildSections(puzzleData[0].sections);
         this.buildAdjacentSections();
         this.showStandardMode();
-        
+        this.testWord = puzzleData[0].words[0];
+        this.loaderSvc.dismiss();
         // console.log('content bytes =>', this.localPuzzles);
     });
   }
@@ -71,6 +81,8 @@ export class GameViewPage implements OnInit, OnDestroy {
       return;
     }
     this.context.beginPath();
+    this.context.save();
+    this.context.lineWidth = 2;
     this.context.moveTo(selectionCoords.start.start.x, selectionCoords.start.start.y);
     this.context.lineTo(selectionCoords.start.end.x, selectionCoords.start.end.y);
          selectionCoords.top.forEach((l) => {
@@ -88,6 +100,7 @@ export class GameViewPage implements OnInit, OnDestroy {
     this.context.moveTo(selectionCoords.end.start.x, selectionCoords.end.start.y);
     this.context.lineTo(selectionCoords.end.end.x, selectionCoords.end.end.y);
     this.context.stroke();
+    this.context.restore();
   }
   buildHighlighter(positions: Point2D[], selectDir:DirectionType, largeWidth: number): highlight {
     
@@ -153,14 +166,14 @@ export class GameViewPage implements OnInit, OnDestroy {
             highlightStruct.top.push(
               new Line(
                 new Point2D(first.x, first.y - largeWidth),
-                new Point2D(first.x + largeWidth *.20, first.y - largeWidth)
+                new Point2D(first.x + (largeWidth *.50), first.y - largeWidth)
               ),
               new Line(
-                new Point2D(first.x + largeWidth * .20, first.y - largeWidth),
-                new Point2D(last.x + largeWidth * .20, last.y - largeWidth)
+                new Point2D(first.x + (largeWidth * .50), first.y - largeWidth),
+                new Point2D(last.x + (largeWidth * .50), last.y - largeWidth)
               ),
               new Line(
-                new Point2D(last.x, last.y - largeWidth),
+                new Point2D(last.x + (largeWidth * .50), last.y - largeWidth),
                 new Point2D(last.x + largeWidth, last.y - largeWidth)
               )
             );
@@ -168,14 +181,14 @@ export class GameViewPage implements OnInit, OnDestroy {
             highlightStruct.bottom.push(
               new Line(
                 new Point2D(first.x, first.y),
-                new Point2D(first.x + largeWidth * .20, first.y)
+                new Point2D(first.x + (largeWidth * .50), first.y)
               ),
               new Line(
-                new Point2D(first.x + largeWidth * .20, first.y),
-                new Point2D(last.x, last.y)
+                new Point2D(first.x + (largeWidth * .50), first.y),
+                new Point2D(last.x + (largeWidth * .50), last.y)
               ),
               new Line(
-                new Point2D(last.x, last.y),
+                new Point2D(last.x + (largeWidth * .50), last.y),
                 new Point2D(last.x + largeWidth, last.y)
               )
             )
@@ -239,14 +252,14 @@ export class GameViewPage implements OnInit, OnDestroy {
         highlightStruct.bottom.push(
           new Line(
             new Point2D(first.x + largeWidth, first.y),
-            new Point2D( first.x + largeWidth * .20, first.y)
+            new Point2D( first.x , first.y)
           ),
           new Line(
-            new Point2D(first.x + largeWidth * .20, first.y),
-            new Point2D(last.x + largeWidth, last.y)
+            new Point2D(first.x , first.y),
+            new Point2D(last.x + (largeWidth * .50), last.y)
            ),
            new Line(
-            new Point2D(last.x + largeWidth, last.y),
+            new Point2D(last.x + (largeWidth * .50), last.y),
             new Point2D(last.x,last.y)
            )
         );
@@ -254,14 +267,14 @@ export class GameViewPage implements OnInit, OnDestroy {
         highlightStruct.top.push(
           new Line(
             new Point2D(first.x + largeWidth, first.y - largeWidth),
-            new Point2D(first.x + largeWidth * .20, first.y - largeWidth)
+            new Point2D(first.x + largeWidth * .30, first.y - largeWidth)
           ),
           new Line(
-            new Point2D(first.x + largeWidth * .20, first.y - largeWidth),
-            new Point2D(last.x + largeWidth, last.y - largeWidth)
+            new Point2D(first.x + largeWidth * .30, first.y - largeWidth),
+            new Point2D(last.x + largeWidth * .30, last.y - largeWidth)
           ),
           new Line(
-            new Point2D(last.x + largeWidth, last.y - largeWidth),
+            new Point2D(last.x + largeWidth * .30, last.y - largeWidth),
             new Point2D(last.x, last.y - largeWidth)
           )
 
@@ -308,10 +321,21 @@ export class GameViewPage implements OnInit, OnDestroy {
      }
      return highlightStruct;
   }
+  resetSelectionQueue(): void {
+    this.currSelectionQueue = null;
+    /*this.currSelectionQueue = new highlighter(this.buildHighlighter);
+    this.currSelectionQueue.points = [];
+    this.currSelectionQueue.ids = [];
+    this.currSelectionQueue.dir = DirectionType.None;*/
+  }
   backToMainScreen(): void {
     this.inLargeMode = false;
+    this.resetSelectionQueue();
     this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+    this.mergeSelections();
     this.showStandardMode();
+    this.renderWords();
+    
   }
   private showStandardMode() {
     this.loadDataToCanvas();
@@ -319,6 +343,7 @@ export class GameViewPage implements OnInit, OnDestroy {
     //this.displaySectionOutline();
   }
   private withInBounds(start: Point2D, end: Point2D, checkWidth: number): boolean {
+   // debugger;
     const midX1 = (start.x + checkWidth) / 2;
     const midY1 = (start.y + checkWidth) / 2;
     const midX2 = (end.x + checkWidth) / 2;
@@ -326,20 +351,20 @@ export class GameViewPage implements OnInit, OnDestroy {
     const a = midX1 - midX2;
     const b  = midY1 - midY2;
     const c = Math.floor(Math.sqrt( a*a + b*b ));
-    return c === checkWidth;
+    return c <= 40;
 
   }
   private findDir(start: Point2D, end: Point2D): DirectionType {
-    //debugger;
-    let subDir: DirectionType = undefined;
+    // debugger;
+    let subDir: DirectionType = DirectionType.None;
             if (start.y === end.y && end.x - start.x > 1) {
               subDir = DirectionType.horizontalRight;
             } else if (start.y === end.y && end.x - start.x < 0) {
               subDir = DirectionType.horizontalLeft
-            } else if (start.x === end.x && end.x - start.y < 0) {
+            } else if (start.x === end.x && end.y - start.y < 0) {
               subDir = DirectionType.verticalUp;
             }
-            else if (start.x === end.x && end.x - start.y > 1) {
+            else if (start.x === end.x && end.y - start.y > 1) {
               subDir = DirectionType.verticalDown;
             } else if (end.x - start.x > 1 && end.y - start.y < 0) {
               subDir = DirectionType.diagonalUpRight;
@@ -359,6 +384,7 @@ export class GameViewPage implements OnInit, OnDestroy {
       this.currSelectionQueue = new highlighter(this.buildHighlighter);
       this.currSelectionQueue.points = [];
       this.currSelectionQueue.ids = [];
+      this.startTimer();
     }
     
     //console.log('All sub points => ', this.subPuzzlePts, pos, largeWidth);
@@ -373,9 +399,10 @@ export class GameViewPage implements OnInit, OnDestroy {
             this.currSelectionQueue.ids.push(pt.id);
           } else {
             const currDir = this.findDir(this.currSelectionQueue.points[this.currSelectionQueue.points.length-1],pt.position);
-            if( currDir !== DirectionType.None) {
+            if( currDir !== DirectionType.None && currDir) {
+              // debugger;
               if(this.currSelectionQueue.dir && this.currSelectionQueue.dir === currDir &&
-                this.withInBounds(this.currSelectionQueue.points[this.currSelectionQueue.points.length-1], pos, largeWidth)) {
+                this.withInBounds(this.currSelectionQueue.points[this.currSelectionQueue.points.length-1], pt.position, largeWidth)) {
                  
                 this.currSelectionQueue.points.push(pt.position);
                 this.currSelectionQueue.ids.push(pt.id);
@@ -385,6 +412,8 @@ export class GameViewPage implements OnInit, OnDestroy {
                 this.currSelectionQueue.ids.push(pt.id);
               } else {
                 //thow error and cleanup
+                console.log('Error...stop cheating!!');
+                this.displayErrModal = true;
               }
             }
           }
@@ -395,10 +424,23 @@ export class GameViewPage implements OnInit, OnDestroy {
     if(!this.currSelectionQueue){
       return;
     }
-    const source = timer(3000);
+    console.log('Before Timer => ', new Date().toLocaleTimeString());
+    const source = timer(6000);
     this.subScriptionTimer = source.subscribe(val => {
       console.log(val);
-    
+      console.log('After Timer => ', new Date().toLocaleTimeString());
+      // debugger;
+      const onlyLetters =  this.currSelectionQueue.ids.map(p => p.letter).join('');
+      if(onlyLetters === this.testWord){
+        console.log('Word has matched!!');
+        this.allSelections.push(this.currSelectionQueue);
+      } else {
+        console.log('Word did not match!!');
+      }
+      if(this.subScriptionTimer){
+        this.subScriptionTimer.unsubscribe();
+      }
+      this.resetSelectionQueue();
     });
 
   }
@@ -418,11 +460,19 @@ export class GameViewPage implements OnInit, OnDestroy {
       if (this.statusHighlight && this.inLargeMode) {
         this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
         const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+        
         this.userSelections(pt);
         this.displayLargeAll();
         
+
           const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
           this.displaySelectionsByUser(selectObj);
+          if(this.allSelections.length) {
+            this.allSelections.forEach( selec => {
+              const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
+              this.displaySelectionsByUser(result);
+            });
+          }
         
        
       }
@@ -439,6 +489,13 @@ export class GameViewPage implements OnInit, OnDestroy {
         this.statusMove = true;
         this.statusHighlight = false;
         this.throwToggleStatus();
+        if(this.allSelections.length) {
+          const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+          this.allSelections.forEach( selec => {
+            const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
+            this.displaySelectionsByUser(result);
+          });
+        }
         
        
       }
@@ -458,6 +515,7 @@ export class GameViewPage implements OnInit, OnDestroy {
           const subPixels = <Pixel[]> currSection.subPixels;
           this.displayPartialSection(subPixels);
         }
+        this.renderWords();
         
       }
       if(this.statusMove && !this.inLargeMode && this.isMouseDown) {
@@ -466,11 +524,16 @@ export class GameViewPage implements OnInit, OnDestroy {
         let deltaY = pt.y - this.initialDown.y;
         this.initialDown = new Point2D(pt.x, pt.y);
         this.updatePuzzlePosition(deltaX, deltaY);
+        this.mergeSelections();
+        // this.updateSelectedWords(deltaX, deltaY);
+        // console.log('The updatedWords => ', this.allSelections[0].points);
         this.showStandardMode();
+        this.renderWords();
       }
       if(this.statusMove && !this.inLargeMode && !this.isMouseDown) {
         this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
         this.showStandardMode();
+        this.renderWords();
       }
       if(this.inLargeMode && this.statusMove) {
         if(this.isMouseDown) { 
@@ -485,10 +548,17 @@ export class GameViewPage implements OnInit, OnDestroy {
           this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
           this.displayLargeLetters(this.sectionPicked)
         }
+        if(this.allSelections.length) {
+          const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+          this.allSelections.forEach( selec => {
+            const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
+            this.displaySelectionsByUser(result);
+          });
+        }
         
       }
       if(this.inLargeMode && this.statusHighlight){
-        if(this.isMouseDown) {
+        // if(this.isMouseDown) {
           this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
           const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
           this.displayLargeAll();
@@ -496,7 +566,13 @@ export class GameViewPage implements OnInit, OnDestroy {
               const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
               this.displaySelectionsByUser(selectObj)
           }
-        }
+          if(this.allSelections.length) {
+            this.allSelections.forEach( selec => {
+              const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
+              this.displaySelectionsByUser(result);
+            });
+          }
+       // }
         
       }
     }
@@ -621,6 +697,23 @@ export class GameViewPage implements OnInit, OnDestroy {
       pixel.position = new Point2D(oldX + deltaX, oldY + deltaY);
     })
   }
+  private updateSelectedWords(deltaX: number, deltaY: number): void {
+    this.allSelections.forEach( selec => {
+     selec.points = selec.points.map(pt => {
+        return {
+          x: pt.x + deltaX,
+          y: pt.y + deltaY
+        }
+      });
+      /*selec.points.forEach( pt => {
+        const oldX = pt.x;
+        const oldY = pt.y;
+        pt = new Point2D(oldX + deltaX,  oldY + deltaY);
+        // pt.x = oldX + deltaX;
+        // pt.y = oldY + deltaY;
+      });*/
+    });
+  }
   private displayLargeAll(): void {
     for (const key in this.largeHash) {
       if (this.largeHash.hasOwnProperty(key)){
@@ -666,7 +759,25 @@ export class GameViewPage implements OnInit, OnDestroy {
   }
   private loadCanvasTouchEvents(): void {
     this.canvasRef.ontouchstart = (evt) => {
+      const touch = evt.touches[0];
       
+      var mouseEvent = new MouseEvent("mousedown", {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+      this.canvasRef.dispatchEvent(mouseEvent);
+    }
+    this.canvasRef.ontouchmove = (evt) => {
+      const touch = evt.touches[0];
+      const mouseEvent = new MouseEvent("mousemove", {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+     this.canvasRef.dispatchEvent(mouseEvent);
+    }
+    this.canvasRef.ontouchend = (evt) => {
+      const mouseEvent = new MouseEvent("mouseup", {});
+      this.canvasRef.dispatchEvent(mouseEvent);
     }
   }
   private buildAdjacentSections(): void {
@@ -677,7 +788,12 @@ export class GameViewPage implements OnInit, OnDestroy {
         col = 0;
         row++;
       }
-      const filterdSec = this.allPixles.filter( pix => pix.position.x >= section[0].x && pix.position.x <= section[2].x - this.cellWidth && pix.position.y >= section[0].y && pix.position.y <= section[2].y - this.cellWidth)
+      
+      //console.log('One section at a time => ', section);
+      const filterdSec = this.allPixles.filter( pix => pix.position.x >= section[0].x && pix.position.x <= section[2].x - this.cellWidth && pix.position.y >= section[0].y  && pix.position.y <= section[2].y - this.cellWidth)
+      /*if(row === 0) {
+        console.log('One section at a time => ', filterdSec);
+      }*/
       // this.adjSections[row + '-' + col] = filterdSec;
       const f = (key:string, sec:Pixel[]) => {
       const newWidth = Math.floor(this.canvasRef.width / this.numOfCols);
@@ -747,16 +863,38 @@ export class GameViewPage implements OnInit, OnDestroy {
     });
     this.localPuzzles[0].sectionHash = this.adjSections;
   }
+  private mergeSelections(): void {
+    this.allSmallSelections = [];
+    this.allSelections.forEach(sec => {
+      const newObj =  new highlighter(this.buildHighlighter);
+      newObj.points = [];
+      newObj.ids = [];
+      sec.ids.forEach( subId => {
+        const foundItem = this.allPixles.find(x => x.id === subId.id)
+        newObj.points.push(foundItem.position);
+        newObj.ids.push(foundItem);
+        newObj.dir = sec.dir;
+
+      });
+      this.allSmallSelections.push(newObj);
+    });
+  }
+  private renderWords(): void {
+    this.allSmallSelections.forEach( selec => {
+      const result = this.buildHighlighter(selec.points, selec.dir, this.cellWidth);
+      this.displaySelectionsByUser(result);
+    });
+  }
   private displayPartialSection(outline: Pixel[]): void {
     this.context.beginPath();
     this.context.save();
     this.context.moveTo(outline[0].position.x, outline[0].position.y - this.cellWidth);
     this.context.lineTo(outline[outline.length-1].position.x + this.cellWidth, outline[0].position.y - this.cellWidth);
     this.context.moveTo(outline[outline.length-1].position.x + this.cellWidth, outline[0].position.y - this.cellWidth);
-    this.context.lineTo(outline[outline.length-1].position.x + this.cellWidth, outline[outline.length-1].position.y - this.cellWidth);
-    this.context.moveTo(outline[outline.length-1].position.x + this.cellWidth, outline[outline.length-1].position.y - this.cellWidth);
-    this.context.lineTo(outline[0].position.x,  outline[outline.length-1].position.y - this.cellWidth );
-    this.context.moveTo(outline[0].position.x,  outline[outline.length-1].position.y - this.cellWidth);
+    this.context.lineTo(outline[outline.length-1].position.x + this.cellWidth, outline[outline.length-1].position.y);
+    this.context.moveTo(outline[outline.length-1].position.x + this.cellWidth, outline[outline.length-1].position.y);
+    this.context.lineTo(outline[0].position.x,  outline[outline.length-1].position.y );
+    this.context.moveTo(outline[0].position.x,  outline[outline.length-1].position.y);
     this.context.lineTo(outline[0].position.x, outline[0].position.y - this.cellWidth);
     
     this.context.stroke();
@@ -878,6 +1016,9 @@ export class GameViewPage implements OnInit, OnDestroy {
       //console.log(' Highlight =>', this.puzzelSections);
     }
      
+  }
+  closeOops(): void {
+    this.displayErrModal = false;
   }
   ngOnDestroy(): void {
     if(this.puzzleSubscribe) {

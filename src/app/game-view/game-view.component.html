@@ -8,3 +8,14 @@
     <div id="moveCanvas" class="highlight" (click)="toggleStatus($event)" >Move Puzzle</div>
     <div id="highlightCanvas" class="pale" (click)="toggleStatus($event)" >Highlight</div>
   </div>
+  <div *ngIf="displayErrModal" class="puzzle-err-modal">
+    <div style="float: left;">
+      <img src="/assets/confused-emoji.png" />
+    </div>
+    <div class="center-oops-modal" style="float: right;">
+    Ooops...
+     <div>
+       <button (click)="closeOops()">Close</button>
+     </div>
+    </div>
+  </div>

@@ -5,7 +5,7 @@ export class highlighter {
     private _f: Function;
     private _points: Point2D[];
     private _selectDir: DirectionType;
-    private _ids: number[];
+    private _ids: any[];
 
     constructor(f: Function) {
         this._f = f;
@@ -25,7 +25,7 @@ export class highlighter {
     public set dir(selectDir: DirectionType) {
         this._selectDir = selectDir;
     }
-    public set ids(ids: number[]) {
+    public set ids(ids: any[]) {
         this._ids = ids;
     }
     public get ids() {

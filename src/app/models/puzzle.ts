@@ -7,4 +7,5 @@ export interface Puzzle {
     modulus: number;
     sections: string[];
     sectionHash: any;
+    words:string[];
 }
