@@ -5,9 +5,7 @@ import { Puzzle } from '../models/puzzle';
 import {first, map, tap} from 'rxjs/operators';
 import { convertSnaps } from './db-utils';
 
-@Injectable({
-    providedIn: 'root'
-  })
+@Injectable()
   export class PuzzleService {
     constructor(private db: AngularFirestore) { }
 

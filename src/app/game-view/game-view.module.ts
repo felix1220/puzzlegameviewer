@@ -7,14 +7,26 @@ import { IonicModule } from '@ionic/angular';
 import { GameViewPageRoutingModule } from './game-view-routing.module';
 
 import { GameViewPage } from './game-view.component';
+import { AngularFireModule } from '@angular/fire';
+import { environment } from 'src/environments/environment';
+import {AngularFireAuthModule} from '@angular/fire/auth';
+import {AngularFirestoreModule} from '@angular/fire/firestore';
+import {AngularFireStorageModule} from '@angular/fire/storage';
+import { PuzzleService } from '../services/puzzle.service';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    GameViewPageRoutingModule
+    GameViewPageRoutingModule,
+    AngularFireModule.initializeApp(environment.firebase),
+    AngularFirestoreModule,
+    AngularFireAuthModule,
+    AngularFireModule,
+    AngularFireStorageModule
   ],
-  declarations: [GameViewPage]
+  declarations: [GameViewPage],
+  providers:[PuzzleService]
 })
 export class GameViewPageModule {}

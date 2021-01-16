@@ -6,6 +6,8 @@ export class highlighter {
     private _points: Point2D[];
     private _selectDir: DirectionType;
     private _ids: any[];
+    private _key: string;
+    private _oldPoints: Point2D[];
 
     constructor(f: Function) {
         this._f = f;
@@ -30,5 +32,17 @@ export class highlighter {
     }
     public get ids() {
         return this._ids;
+    }
+    public set keySet(key: string) {
+        this._key = key;
+    }
+    public get getKey(){
+        return this._key;
+    }
+    public set oldPoints(points: Point2D[]) {
+        this._oldPoints = points;
+    }
+    public get oldPoints(){
+        return this._oldPoints;
     }
 }
