@@ -46,6 +46,7 @@ export class GameViewPage implements OnInit, OnDestroy {
   testWord: any= {};
   allSelections: highlighter[] = [];
   allSmallSelections: highlighter[] = [];
+  subSelections: highlighter[] = [];
 
   constructor(private puzzleService: PuzzleService, private loaderSvc: LoaderService) { 
     this.allPixles = [];
@@ -479,8 +480,14 @@ export class GameViewPage implements OnInit, OnDestroy {
 
           const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
           this.displaySelectionsByUser(selectObj);
-          if(this.allSelections.length) {
+          /*if(this.allSelections.length) {
             this.allSelections.forEach( selec => {
+              const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
+              this.displaySelectionsByUser(result);
+            });
+          }*/
+          if(this.subSelections.length) {
+            this.subSelections.forEach( selec => {
               const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
               this.displaySelectionsByUser(result);
             });
@@ -492,10 +499,17 @@ export class GameViewPage implements OnInit, OnDestroy {
         //move large letters
         this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
         this.displayLargeAll();
-        this.renderWords();
-        if(this.allSelections.length) {
+        // this.renderWords();
+        /*if(this.allSelections.length) {
           const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
           this.allSelections.forEach( selec => {
+            const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
+            this.displaySelectionsByUser(result);
+          });
+        }*/
+        if(this.subSelections.length) {
+          const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+          this.subSelections.forEach( selec => {
             const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
             this.displaySelectionsByUser(result);
           });
@@ -573,10 +587,18 @@ export class GameViewPage implements OnInit, OnDestroy {
           this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
           this.displayLargeLetters(this.sectionPicked)
         }
-        if(this.allSelections.length) {
+        /*if(this.allSelections.length) {
          
           const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
           this.allSelections.forEach( selec => {
+            const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
+            this.displaySelectionsByUser(result);
+          });
+        }*/
+        if(this.subSelections.length) {
+         
+          const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+          this.subSelections.forEach( selec => {
             const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
             this.displaySelectionsByUser(result);
           });
@@ -592,8 +614,14 @@ export class GameViewPage implements OnInit, OnDestroy {
               const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
               this.displaySelectionsByUser(selectObj)
           }
-          if(this.allSelections.length) {
+          /*if(this.allSelections.length) {
             this.allSelections.forEach( selec => {
+              const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
+              this.displaySelectionsByUser(result);
+            });
+          }*/
+          if(this.subSelections.length) {
+            this.subSelections.forEach( selec => {
               const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
               this.displaySelectionsByUser(result);
             });
@@ -620,6 +648,14 @@ export class GameViewPage implements OnInit, OnDestroy {
        pt.y = pt.y + deltaY;
      }) 
     });
+  }
+  private partitionSelection(): void {
+    this.subSelections = [];
+    this.allSelections.forEach( sec => {
+      if(this.largeHash[sec.keySet]) {
+        this.subSelections.push(sec);
+      }
+    })
   }
   private setUpLargeLettersPos(startingRect: any): void {
     let hashFunc = this.localPuzzles[0].sectionHash[startingRect.key];
@@ -722,7 +758,7 @@ export class GameViewPage implements OnInit, OnDestroy {
                                                  }
        console.log('Bottom Left => ' , leftBottomKey);
     }
-
+    this.partitionSelection();
   }
   private updatePuzzlePosition(deltaX: number, deltaY: number): void {
     this.allPixles.forEach(pixel => {
