@@ -334,6 +334,7 @@ export class GameViewPage implements OnInit, OnDestroy {
   }
   resetSelectionQueue(): void {
     this.currSelectionQueue = null;
+   
     /*this.currSelectionQueue = new highlighter(this.buildHighlighter);
     this.currSelectionQueue.points = [];
     this.currSelectionQueue.ids = [];
@@ -346,6 +347,7 @@ export class GameViewPage implements OnInit, OnDestroy {
     this.mergeSelections();
     this.showStandardMode();
     this.renderWords();
+    this.subSelections = [];
     
   }
   private showStandardMode() {
@@ -447,6 +449,7 @@ export class GameViewPage implements OnInit, OnDestroy {
         this.currSelectionQueue.oldPoints = this.testWord.points;
         console.log('Word has matched!!', this.currSelectionQueue);
         this.allSelections.push(this.currSelectionQueue);
+        this.subSelections.push(this.currSelectionQueue);
       } else {
         console.log('Word did not match!!');
       }
@@ -620,10 +623,12 @@ export class GameViewPage implements OnInit, OnDestroy {
               this.displaySelectionsByUser(result);
             });
           }*/
+          // console.log('Showing subsection => ', this.subSelections);
           if(this.subSelections.length) {
             this.subSelections.forEach( selec => {
               const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
               this.displaySelectionsByUser(result);
+              // console.log('Showing subsection => ', result);
             });
           }
        // }
@@ -652,7 +657,8 @@ export class GameViewPage implements OnInit, OnDestroy {
   private partitionSelection(): void {
     this.subSelections = [];
     this.allSelections.forEach( sec => {
-      if(this.largeHash[sec.keySet]) {
+     
+      if(this.largeHash[sec.getKey]) {
         this.subSelections.push(sec);
       }
     })
