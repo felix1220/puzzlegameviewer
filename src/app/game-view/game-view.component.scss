@@ -65,3 +65,13 @@
     padding: 10px;
     margin: 20px;
 }
+.wrapper {
+    position: relative;
+    width: 400px;
+    height: 300px;
+}
+.wrapper canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}

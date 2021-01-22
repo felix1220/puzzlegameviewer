@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Subscription, timer } from 'rxjs';
+import { interval, Subscription, timer } from 'rxjs';
 import { BlockType } from '../models/blockTypes';
 import { Pixel } from '../models/pixel';
 import { Point2D } from '../models/point';
@@ -11,6 +11,8 @@ import { Line } from '../models/line';
 import { highlighter } from '../models/highlighter';
 import { debugOutputAstAsTypeScript } from '@angular/compiler';
 import { LoaderService } from '../services/loader/loader.service';
+import * as Fireworks from './../utils/fireworks';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-game-view',
@@ -20,8 +22,10 @@ import { LoaderService } from '../services/loader/loader.service';
 export class GameViewPage implements OnInit, OnDestroy {
 
   canvasRef :HTMLCanvasElement;
+  canvas2:HTMLCanvasElement;
   puzzleSubscribe:Subscription;
   context:CanvasRenderingContext2D;
+  context2:CanvasRenderingContext2D;
   puzzleStyle: string;
   cellWidth: number;
   mod: number;
@@ -43,10 +47,11 @@ export class GameViewPage implements OnInit, OnDestroy {
   subPuzzlePts: any[] = [];
   subScriptionTimer: Subscription; 
   displayErrModal: boolean = false;
-  testWord: any= {};
+  testWords: any[] = [];
   allSelections: highlighter[] = [];
   allSmallSelections: highlighter[] = [];
   subSelections: highlighter[] = [];
+  fireWorks: any = null;
 
   constructor(private puzzleService: PuzzleService, private loaderSvc: LoaderService) { 
     this.allPixles = [];
@@ -58,7 +63,9 @@ export class GameViewPage implements OnInit, OnDestroy {
     // this.loaderSvc.present();
     this.canvasRef = <HTMLCanvasElement>document.getElementById('canvasPuzzle');
     this.context = this.canvasRef.getContext('2d');
-    
+    this.canvas2 = <HTMLCanvasElement>document.getElementById('canvas2');
+     this.context2 = this.canvas2.getContext('2d');
+
     this.loadCanvasMouseEvents();
     this.loadCanvasTouchEvents();
     
@@ -68,24 +75,54 @@ export class GameViewPage implements OnInit, OnDestroy {
         this.puzzleStyle = puzzleData[0].Style;
         this.cellWidth = puzzleData[0].Font + puzzleData[0].Spacing;
         this.mod = puzzleData[0].modulus;
+        this.testWords = this.convertWordsToArray(puzzleData[0].words);
         this.populatePixelArray(puzzleData[0].content);
         this.sections = this.buildSections(puzzleData[0].sections);
         this.buildAdjacentSections();
         this.showStandardMode();
-        const splitWord = puzzleData[0].words[0].split(',');
-        let corner = splitWord[2].split(':');
-        const onlyPts: any[] = [];
-        onlyPts.push(new Point2D(+corner[0], +corner[1]))
-        corner = splitWord[3].split(':');
-        onlyPts.push(new Point2D(+corner[0], +corner[1]));
-        corner = splitWord[4].split(':');
-        onlyPts.push(new Point2D(+corner[0], +corner[1]));
-        corner = splitWord[5].split(':');
-        onlyPts.push(new Point2D(+corner[0], +corner[1]));
-        this.testWord = { key: splitWord[1], word: splitWord[0], points:onlyPts};
+       
+        
         this.loaderSvc.dismiss();
         // console.log('content bytes =>', this.localPuzzles);
     });
+  }
+  private convertWordsToArray(words: string[]): any[] {
+    const collector: any[] = [];
+    words.forEach( w => {
+      const splitWord = w.split(',');
+      let corner = splitWord[2].split(':');
+      const onlyPts: any[] = [];
+      onlyPts.push(new Point2D(+corner[0], +corner[1]))
+      corner = splitWord[3].split(':');
+      onlyPts.push(new Point2D(+corner[0], +corner[1]));
+      corner = splitWord[4].split(':');
+      onlyPts.push(new Point2D(+corner[0], +corner[1]));
+      corner = splitWord[5].split(':');
+      onlyPts.push(new Point2D(+corner[0], +corner[1]));
+      collector.push({
+        key: splitWord[1],
+        word: splitWord[0],
+        points:onlyPts,
+        translatedPoints: null
+      });
+
+    });
+    return collector;
+  }
+  private fireWorksAnime(): void {
+    this.fireWorks = new Fireworks(this.canvas2, this.context2);
+    this.fireWorks.getAsWebElement();
+    const steps = interval(100);
+    steps.pipe(take(50))
+    .subscribe( num => {
+      console.log('star steps => ', num);
+      
+    },
+    () => console.log('Error happened!'),
+    () => {
+      this.fireWorks.cancelAnimation();
+      // this.fireWorksRunning = false;
+    })
   }
   private displaySelectionsByUser(selectionCoords: highlight): void {
     if (selectionCoords && !selectionCoords.start) {
@@ -444,9 +481,9 @@ export class GameViewPage implements OnInit, OnDestroy {
       console.log('After Timer => ', new Date().toLocaleTimeString());
       // debugger;
       const onlyLetters =  this.currSelectionQueue.ids.map(p => p.letter).join('');
-      if(onlyLetters === this.testWord.word){
-        this.currSelectionQueue.keySet = this.testWord.key;
-        this.currSelectionQueue.oldPoints = this.testWord.points;
+      if(onlyLetters === this.testWords[0].word){
+        this.currSelectionQueue.keySet = this.testWords[0].key;
+        this.currSelectionQueue.oldPoints = this.testWords[0].points;
         console.log('Word has matched!!', this.currSelectionQueue);
         this.allSelections.push(this.currSelectionQueue);
         this.subSelections.push(this.currSelectionQueue);
@@ -470,6 +507,7 @@ export class GameViewPage implements OnInit, OnDestroy {
       if(this.statusMove && !this.inLargeMode) {
         this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
         this.showStandardMode();
+        this.renderWords();
         
        
       }
@@ -483,18 +521,19 @@ export class GameViewPage implements OnInit, OnDestroy {
 
           const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
           this.displaySelectionsByUser(selectObj);
+          this.displayAllSectionsUser();
           /*if(this.allSelections.length) {
             this.allSelections.forEach( selec => {
               const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
               this.displaySelectionsByUser(result);
             });
-          }*/
+          }
           if(this.subSelections.length) {
             this.subSelections.forEach( selec => {
               const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
               this.displaySelectionsByUser(result);
             });
-          }
+          }*/
         
        
       }
@@ -502,6 +541,7 @@ export class GameViewPage implements OnInit, OnDestroy {
         //move large letters
         this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
         this.displayLargeAll();
+        this.displayAllSectionsUser();
         // this.renderWords();
         /*if(this.allSelections.length) {
           const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
@@ -509,7 +549,7 @@ export class GameViewPage implements OnInit, OnDestroy {
             const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
             this.displaySelectionsByUser(result);
           });
-        }*/
+        }
         if(this.subSelections.length) {
           const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
           this.subSelections.forEach( selec => {
@@ -517,6 +557,7 @@ export class GameViewPage implements OnInit, OnDestroy {
             this.displaySelectionsByUser(result);
           });
         }
+        */
       }
       if(!this.statusMove && !this.inLargeMode) {
         this.inLargeMode = true;
@@ -528,16 +569,7 @@ export class GameViewPage implements OnInit, OnDestroy {
         this.statusMove = true;
         this.statusHighlight = false;
         this.throwToggleStatus();
-        if(this.allSelections.length) {
-          const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
-          this.allSelections.forEach( selec => {
-            selec.points = selec.oldPoints;
-            const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
-            this.displaySelectionsByUser(result);
-          });
-        }
-        
-       
+        this.displayAllSectionsUser();
       }
     
       this.initialDown = new Point2D(pt.x, pt.y);
@@ -590,6 +622,7 @@ export class GameViewPage implements OnInit, OnDestroy {
           this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
           this.displayLargeLetters(this.sectionPicked)
         }
+        this.displayAllSectionsUser();
         /*if(this.allSelections.length) {
          
           const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
@@ -597,7 +630,7 @@ export class GameViewPage implements OnInit, OnDestroy {
             const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
             this.displaySelectionsByUser(result);
           });
-        }*/
+        }
         if(this.subSelections.length) {
          
           const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
@@ -606,6 +639,7 @@ export class GameViewPage implements OnInit, OnDestroy {
             this.displaySelectionsByUser(result);
           });
         }
+        */
         
       }
       if(this.inLargeMode && this.statusHighlight){
@@ -617,12 +651,13 @@ export class GameViewPage implements OnInit, OnDestroy {
               const selectObj = this.buildHighlighter(this.currSelectionQueue.points,this.currSelectionQueue.dir, largeWidth);
               this.displaySelectionsByUser(selectObj)
           }
+          this.displayAllSectionsUser();
           /*if(this.allSelections.length) {
             this.allSelections.forEach( selec => {
               const result = this.buildHighlighter(selec.points, selec.dir, largeWidth);
               this.displaySelectionsByUser(result);
             });
-          }*/
+          }
           // console.log('Showing subsection => ', this.subSelections);
           if(this.subSelections.length) {
             this.subSelections.forEach( selec => {
@@ -630,7 +665,7 @@ export class GameViewPage implements OnInit, OnDestroy {
               this.displaySelectionsByUser(result);
               // console.log('Showing subsection => ', result);
             });
-          }
+          }*/
        // }
         
       }
@@ -653,15 +688,6 @@ export class GameViewPage implements OnInit, OnDestroy {
        pt.y = pt.y + deltaY;
      }) 
     });
-  }
-  private partitionSelection(): void {
-    this.subSelections = [];
-    this.allSelections.forEach( sec => {
-     
-      if(this.largeHash[sec.getKey]) {
-        this.subSelections.push(sec);
-      }
-    })
   }
   private setUpLargeLettersPos(startingRect: any): void {
     let hashFunc = this.localPuzzles[0].sectionHash[startingRect.key];
@@ -764,7 +790,7 @@ export class GameViewPage implements OnInit, OnDestroy {
                                                  }
        console.log('Bottom Left => ' , leftBottomKey);
     }
-    this.partitionSelection();
+    
   }
   private updatePuzzlePosition(deltaX: number, deltaY: number): void {
     this.allPixles.forEach(pixel => {
@@ -794,6 +820,22 @@ export class GameViewPage implements OnInit, OnDestroy {
     for (const key in this.largeHash) {
       if (this.largeHash.hasOwnProperty(key)){
         this.displayLargeLetters(this.largeHash[key])
+      }
+    }
+  }
+  private displayAllSectionsUser(): void {
+    if(this.allSelections.length) {
+      const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
+      for (const key in this.largeHash) {
+        if (this.largeHash.hasOwnProperty(key)){
+          this.largeHash[key].words.forEach(w => {
+            const localWords = this.allSelections.filter( f => f.getKey === w.key);
+            localWords.forEach( l => {
+              const result = this.buildHighlighter(w.translatedPoints, l.dir, largeWidth);
+             this.displaySelectionsByUser(result);
+            })
+          })
+        }
       }
     }
   }
@@ -871,7 +913,7 @@ export class GameViewPage implements OnInit, OnDestroy {
         console.log('One section at a time => ', filterdSec);
       }*/
       // this.adjSections[row + '-' + col] = filterdSec;
-      const f = (key:string, sec:Pixel[]) => {
+      const f = (key:string, sec:Pixel[], bagOfWords: any[]) => {
       const newWidth = Math.floor(this.canvasRef.width / this.numOfCols);
       let translateX = 0, translateY = newWidth;
       console.log('New width =>', newWidth);
@@ -920,6 +962,17 @@ export class GameViewPage implements OnInit, OnDestroy {
     
         }
         let firstCell = sec[0];
+        const filteredWords = bagOfWords.filter( b => b.key === key);
+        filteredWords.forEach(w => {
+          w.translatedPoints = [];
+          let deltaPos = w.points.map( oldRect => {
+            return new Point2D((oldRect.position.x  - firstCell.position.x) / this.cellWidth, (oldRect.position.y - firstCell.position.y) / this.cellWidth);
+          });
+          deltaPos.forEach( p => {
+            w.translatedPts.push(new Point2D((p.x * newWidth + translateX), (p.y * newWidth + translateY)))
+          });
+        });
+       
         let deltaCurrent  = sec.map( oldRect => {
           return new Point2D((oldRect.position.x  - firstCell.position.x) / this.cellWidth, (oldRect.position.y - firstCell.position.y) / this.cellWidth);
         });
@@ -930,11 +983,12 @@ export class GameViewPage implements OnInit, OnDestroy {
           return {
             key: key,
             translatedPts: translatedPts,
-            subPixels: sec
+            subPixels: sec,
+            words: filteredWords
           }
         }
       }
-      this.adjSections[row + '-' + col] = f(row + '-' + col, filterdSec);
+      this.adjSections[row + '-' + col] = f(row + '-' + col, filterdSec, this.testWords);
       col++;
     });
     this.localPuzzles[0].sectionHash = this.adjSections;
