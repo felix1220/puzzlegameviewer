@@ -51,7 +51,7 @@ export class GameViewPage implements OnInit, OnDestroy {
   allSelections: highlighter[] = [];
   allSmallSelections: highlighter[] = [];
   subSelections: highlighter[] = [];
-  fireWorks: any = null;
+  
 
   constructor(private puzzleService: PuzzleService, private loaderSvc: LoaderService) { 
     this.allPixles = [];
@@ -63,8 +63,8 @@ export class GameViewPage implements OnInit, OnDestroy {
     // this.loaderSvc.present();
     this.canvasRef = <HTMLCanvasElement>document.getElementById('canvasPuzzle');
     this.context = this.canvasRef.getContext('2d');
-    this.canvas2 = <HTMLCanvasElement>document.getElementById('canvas2');
-     this.context2 = this.canvas2.getContext('2d');
+    // this.canvas2 = <HTMLCanvasElement>document.getElementById('canvas2');
+     // this.context2 = this.canvas2.getContext('2d');
 
     this.loadCanvasMouseEvents();
     this.loadCanvasTouchEvents();
@@ -110,8 +110,8 @@ export class GameViewPage implements OnInit, OnDestroy {
     return collector;
   }
   private fireWorksAnime(): void {
-    this.fireWorks = new Fireworks(this.canvas2, this.context2);
-    this.fireWorks.getAsWebElement();
+    const fireWorks = new Fireworks(this.canvas2, this.context2);
+    fireWorks.getAsWebElement();
     const steps = interval(100);
     steps.pipe(take(50))
     .subscribe( num => {
@@ -120,7 +120,7 @@ export class GameViewPage implements OnInit, OnDestroy {
     },
     () => console.log('Error happened!'),
     () => {
-      this.fireWorks.cancelAnimation();
+      fireWorks.cancelAnimation();
       // this.fireWorksRunning = false;
     })
   }
@@ -682,12 +682,24 @@ export class GameViewPage implements OnInit, OnDestroy {
     }
   }
   private updateSelectedLargeDeltas(deltaX: number, deltaY: number): void {
-    this.allSelections.forEach( selec => {
-     selec.points.forEach(pt => {
-       pt.x = pt.x + deltaX;
-       pt.y = pt.y + deltaY;
-     }) 
-    });
+    if(this.allSelections.length) {
+      for (const key in this.largeHash) {
+        if (this.largeHash.hasOwnProperty(key)){
+          this.largeHash[key].words.forEach(w => {
+            //debugger;
+            const localWords = this.allSelections.find( f => f.getKey === w.key);
+            if(localWords) {
+              //console.log('The word picked => ', w);
+              w.translatedPoints.forEach( pt => {
+                pt.x = pt.x + deltaX;
+                pt.y = pt.y + deltaY;
+              })
+            }
+          });
+
+        }
+      }
+    }
   }
   private setUpLargeLettersPos(startingRect: any): void {
     let hashFunc = this.localPuzzles[0].sectionHash[startingRect.key];
@@ -723,6 +735,7 @@ export class GameViewPage implements OnInit, OnDestroy {
        console.log('Top Right => ' , topRightKey);
     }
     //top left
+   
     const topLeftKey = (row-1) + '-' + (col-1);
     if(this.localPuzzles[0].sectionHash[topLeftKey]) {
       hashFunc = this.localPuzzles[0].sectionHash[topLeftKey];
@@ -746,6 +759,7 @@ export class GameViewPage implements OnInit, OnDestroy {
       console.log('Right => ' , rightKey);
     }
     //left
+   
     const leftKey = row + '-' + (col-1);
     if(this.localPuzzles[0].sectionHash[leftKey]) {
       //debugger;
@@ -828,11 +842,14 @@ export class GameViewPage implements OnInit, OnDestroy {
       const largeWidth = Math.floor(this.canvasRef.width / this.numOfCols);
       for (const key in this.largeHash) {
         if (this.largeHash.hasOwnProperty(key)){
+          
           this.largeHash[key].words.forEach(w => {
+            //debugger;
             const localWords = this.allSelections.filter( f => f.getKey === w.key);
             localWords.forEach( l => {
               const result = this.buildHighlighter(w.translatedPoints, l.dir, largeWidth);
-             this.displaySelectionsByUser(result);
+             // console.log('Highlight result => ', w.key, result);
+              this.displaySelectionsByUser(result);
             })
           })
         }
@@ -962,16 +979,22 @@ export class GameViewPage implements OnInit, OnDestroy {
     
         }
         let firstCell = sec[0];
+         //debugger;
         const filteredWords = bagOfWords.filter( b => b.key === key);
-        filteredWords.forEach(w => {
-          w.translatedPoints = [];
-          let deltaPos = w.points.map( oldRect => {
-            return new Point2D((oldRect.position.x  - firstCell.position.x) / this.cellWidth, (oldRect.position.y - firstCell.position.y) / this.cellWidth);
+        if(filteredWords) {
+          filteredWords.forEach(w => {
+            w.translatedPoints = [];
+            
+            let deltaPos = w.points.map( oldRect => {
+              //debugger;
+              return new Point2D((oldRect.x  - firstCell.position.x) / this.cellWidth, (oldRect.y - firstCell.position.y) / this.cellWidth);
+            });
+            deltaPos.forEach( p => {
+              w.translatedPoints.push(new Point2D((p.x * newWidth + translateX), (p.y * newWidth + translateY)))
+            });
           });
-          deltaPos.forEach( p => {
-            w.translatedPts.push(new Point2D((p.x * newWidth + translateX), (p.y * newWidth + translateY)))
-          });
-        });
+        }
+      
        
         let deltaCurrent  = sec.map( oldRect => {
           return new Point2D((oldRect.position.x  - firstCell.position.x) / this.cellWidth, (oldRect.position.y - firstCell.position.y) / this.cellWidth);
