@@ -83,7 +83,7 @@ export class GameViewPage implements OnInit, OnDestroy {
        
         
         this.loaderSvc.dismiss();
-        // console.log('content bytes =>', this.localPuzzles);
+        //console.log('content bytes =>', this.testWords);
     });
   }
   private convertWordsToArray(words: string[]): any[] {
@@ -470,6 +470,9 @@ export class GameViewPage implements OnInit, OnDestroy {
         }
     });
   }
+  private checkSelectdWord(selectedWord: string): any {
+    return this.testWords.find( w => w.word.toLocaleLowerCase() === selectedWord.toLocaleLowerCase())
+  }
   private startTimer(): void {
     if(!this.currSelectionQueue){
       return;
@@ -481,9 +484,10 @@ export class GameViewPage implements OnInit, OnDestroy {
       console.log('After Timer => ', new Date().toLocaleTimeString());
       // debugger;
       const onlyLetters =  this.currSelectionQueue.ids.map(p => p.letter).join('');
-      if(onlyLetters === this.testWords[0].word){
-        this.currSelectionQueue.keySet = this.testWords[0].key;
-        this.currSelectionQueue.oldPoints = this.testWords[0].points;
+      const wordMatch = this.checkSelectdWord(onlyLetters);
+      if(wordMatch) {
+        this.currSelectionQueue.keySet = wordMatch.key;
+        this.currSelectionQueue.oldPoints = wordMatch.points;
         console.log('Word has matched!!', this.currSelectionQueue);
         this.allSelections.push(this.currSelectionQueue);
         this.subSelections.push(this.currSelectionQueue);
@@ -583,6 +587,7 @@ export class GameViewPage implements OnInit, OnDestroy {
         const currSection = this.filterSections(pt);
        
         this.loadDataToCanvas();
+        // this.displaySectionOutline();
         if(currSection) {
           const subPixels = <Pixel[]> currSection.subPixels;
           this.displayPartialSection(subPixels);
@@ -620,7 +625,7 @@ export class GameViewPage implements OnInit, OnDestroy {
           this.updateSelectedLargeDeltas(deltaX, deltaY);
         } else if (this.sectionPicked){
           this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
-          this.displayLargeLetters(this.sectionPicked)
+          this.displayLargeLetters(this.sectionPicked);
         }
         this.displayAllSectionsUser();
         /*if(this.allSelections.length) {
@@ -925,19 +930,19 @@ export class GameViewPage implements OnInit, OnDestroy {
       }
       
       //console.log('One section at a time => ', section);
-      const filterdSec = this.allPixles.filter( pix => pix.position.x >= section[0].x && pix.position.x <= section[2].x - this.cellWidth && pix.position.y >= section[0].y  && pix.position.y <= section[2].y - this.cellWidth)
+      const filterdSec = this.allPixles.filter( pix => pix.position.x >= section[0].x && pix.position.x <= section[2].x - this.cellWidth && pix.position.y >= section[0].y  && pix.position.y < section[2].y)
       /*if(row === 0) {
         console.log('One section at a time => ', filterdSec);
       }*/
       // this.adjSections[row + '-' + col] = filterdSec;
       const f = (key:string, sec:Pixel[], bagOfWords: any[]) => {
       const newWidth = Math.floor(this.canvasRef.width / this.numOfCols);
-      let translateX = 0, translateY = newWidth;
+      let translateX = 0, translateY = 0;
       console.log('New width =>', newWidth);
       return (slot:BlockType) => {
         switch(slot) {
           case BlockType.top: {
-            translateY -= this.numOfCols * newWidth;
+            translateY -= (this.numOfCols+1) * newWidth;
             break;
           }
           case BlockType.right: {
@@ -954,12 +959,12 @@ export class GameViewPage implements OnInit, OnDestroy {
           }
           case BlockType.rightTop: {
             translateX += this.numOfCols * newWidth;
-            translateY -= this.numOfCols * newWidth;
+            translateY -= (this.numOfCols+1) * newWidth;
             break;
           }
           case BlockType.leftTop: {
             translateX -= this.numOfCols * newWidth;
-            translateY -= this.numOfCols * newWidth;
+            translateY -= (this.numOfCols+1) * newWidth;
             break;
           }
           case BlockType.bottomRight: {
