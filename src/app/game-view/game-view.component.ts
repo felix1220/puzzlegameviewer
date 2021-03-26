@@ -92,13 +92,13 @@ export class GameViewPage implements OnInit, OnDestroy {
       const splitWord = w.split(',');
       let corner = splitWord[2].split(':');
       const onlyPts: any[] = [];
-      onlyPts.push(new Point2D(+corner[0], +corner[1]))
+      onlyPts.push(new Point2D(+corner[0] * this.cellWidth, +corner[1] * this.cellWidth))
       corner = splitWord[3].split(':');
-      onlyPts.push(new Point2D(+corner[0], +corner[1]));
+      onlyPts.push(new Point2D(+corner[0] * this.cellWidth, +corner[1] * this.cellWidth));
       corner = splitWord[4].split(':');
-      onlyPts.push(new Point2D(+corner[0], +corner[1]));
+      onlyPts.push(new Point2D(+corner[0] * this.cellWidth, +corner[1] * this.cellWidth));
       corner = splitWord[5].split(':');
-      onlyPts.push(new Point2D(+corner[0], +corner[1]));
+      onlyPts.push(new Point2D(+corner[0] * this.cellWidth, +corner[1] * this.cellWidth));
       collector.push({
         key: splitWord[1],
         word: splitWord[0],
@@ -1110,7 +1110,7 @@ export class GameViewPage implements OnInit, OnDestroy {
           let strRgb = `rgba(${pixel.red},${pixel.green},${pixel.blue},1.0)`;
           this.context.font = this.puzzleStyle;
           this.context.fillStyle = strRgb;
-          this.context.fillText(pixel.letter, pixel.position.x, pixel.position.y);
+          this.context.fillText(pixel.letter, pixel.position.x * this.cellWidth, pixel.position.y * this.cellWidth);
           this.context.stroke();
     })
     this.context.restore();
