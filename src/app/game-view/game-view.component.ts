@@ -76,7 +76,8 @@ export class GameViewPage implements OnInit, OnDestroy {
         this.cellWidth = puzzleData[0].Font + puzzleData[0].Spacing;
         this.mod = puzzleData[0].modulus;
         this.testWords = this.convertWordsToArray(puzzleData[0].words);
-        this.populatePixelArray(puzzleData[0].content);
+        //this.populatePixelArray(puzzleData[0].content);
+        this.populatePixelCompress(puzzleData[0].contentSm);
         this.sections = this.buildSections(puzzleData[0].sections);
         this.buildAdjacentSections();
         this.showStandardMode();
@@ -92,13 +93,13 @@ export class GameViewPage implements OnInit, OnDestroy {
       const splitWord = w.split(',');
       let corner = splitWord[2].split(':');
       const onlyPts: any[] = [];
-      onlyPts.push(new Point2D(+corner[0] * this.cellWidth, +corner[1] * this.cellWidth))
+      onlyPts.push(new Point2D(+corner[0], +corner[1]))
       corner = splitWord[3].split(':');
-      onlyPts.push(new Point2D(+corner[0] * this.cellWidth, +corner[1] * this.cellWidth));
+      onlyPts.push(new Point2D(+corner[0], +corner[1]));
       corner = splitWord[4].split(':');
-      onlyPts.push(new Point2D(+corner[0] * this.cellWidth, +corner[1] * this.cellWidth));
+      onlyPts.push(new Point2D(+corner[0], +corner[1]));
       corner = splitWord[5].split(':');
-      onlyPts.push(new Point2D(+corner[0] * this.cellWidth, +corner[1] * this.cellWidth));
+      onlyPts.push(new Point2D(+corner[0], +corner[1]));
       collector.push({
         key: splitWord[1],
         word: splitWord[0],
@@ -881,8 +882,10 @@ export class GameViewPage implements OnInit, OnDestroy {
       if (this.localPuzzles[0].sectionHash.hasOwnProperty(key)) {
         const hashFunc = this.localPuzzles[0].sectionHash[key];
         const subPuzzleResult = hashFunc(BlockType.center);
+       
         const section = subPuzzleResult.subPixels as Pixel[];
-        if(points.x >= section[0].position.x && points.x <= section[section.length-1].position.x && points.y >= section[0].position.y &&
+        // console.log('The sections => ', section);
+        if(section.length && points.x >= section[0].position.x && points.x <= section[section.length-1].position.x && points.y >= section[0].position.y &&
         points.y <= section[section.length-1].position.y) {
           foundSect = subPuzzleResult;
           break;
@@ -1019,6 +1022,7 @@ export class GameViewPage implements OnInit, OnDestroy {
       this.adjSections[row + '-' + col] = f(row + '-' + col, filterdSec, this.testWords);
       col++;
     });
+    
     this.localPuzzles[0].sectionHash = this.adjSections;
   }
   private mergeSelections(): void {
@@ -1089,6 +1093,58 @@ export class GameViewPage implements OnInit, OnDestroy {
     return transformMap;
 
   }
+  private processPositions(positionsArr: any[]): any[] {
+    const len = positionsArr.length - 1;
+    const posObjArr:any[] = []
+    let cntr = 0;
+    for (let i = 0; i < len; i++) {
+        if (i + 1 < len) {
+            posObjArr.push({
+                x: +positionsArr[i],
+                y: +positionsArr[i + 1]
+            });
+            i++
+        }
+        cntr++;
+    }
+    return posObjArr;
+  }
+  private processColors(colorsArr: any[]): any[] {
+    const len = colorsArr.length - 1;
+    const posObjArr:any[] = [];
+    for (let i = 0; i < len; i++) {
+        if (i + 2 < len) {
+            posObjArr.push({
+                r: +colorsArr[i],
+                g: +colorsArr[i + 1],
+                b: +colorsArr[i + 2]
+            });
+            i += 2;
+        }
+    }
+    return posObjArr;
+  }
+  private populatePixelCompress(rawData: string): void {
+    console.log('--new compress flow--')
+    const eachPixelArr = rawData.split(' ');
+    let id = 0;
+    eachPixelArr.forEach( pixelStr => {
+     
+      const pixelArr = pixelStr.split(':');
+      const positionsArr = pixelArr[1].split(',');
+       const colorsArr = pixelArr[2].split(',');
+       const newPositions = this.processPositions(positionsArr);
+        const newColors = this.processColors(colorsArr);
+        for(let i =0; i < newPositions.length; i++) {
+          const color = newColors[i];
+          const newPixel = new Pixel(pixelArr[0], color.r, color.g, color.b, id);
+          newPixel.position = new Point2D(newPositions[i].x * this.cellWidth, newPositions[i].y * this.cellWidth);
+          this.allPixles.push(newPixel);
+          id++;
+        }
+    
+    });
+  }
   private populatePixelArray(rawData: string): void {
     const eachPixelArr = rawData.split(' ');
     let id = 0;
@@ -1110,7 +1166,7 @@ export class GameViewPage implements OnInit, OnDestroy {
           let strRgb = `rgba(${pixel.red},${pixel.green},${pixel.blue},1.0)`;
           this.context.font = this.puzzleStyle;
           this.context.fillStyle = strRgb;
-          this.context.fillText(pixel.letter, pixel.position.x * this.cellWidth, pixel.position.y * this.cellWidth);
+          this.context.fillText(pixel.letter, pixel.position.x, pixel.position.y);
           this.context.stroke();
     })
     this.context.restore();

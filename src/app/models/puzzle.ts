@@ -8,4 +8,5 @@ export interface Puzzle {
     sections: string[];
     sectionHash: any;
     words:string[];
+    contentSm: string;
 }
