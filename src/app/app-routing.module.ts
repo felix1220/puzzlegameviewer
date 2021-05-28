@@ -26,7 +26,11 @@ const routes: Routes = [
   {
     path:'game-view',
     loadChildren: () => import('./game-view/game-view.module').then(m => m.GameViewPageModule)
+  },  {
+    path: 'puzzle-viewer',
+    loadChildren: () => import('./puzzle-viewer/puzzle-viewer.module').then( m => m.PuzzleViewerPageModule)
   }
+
 ];
 
 @NgModule({

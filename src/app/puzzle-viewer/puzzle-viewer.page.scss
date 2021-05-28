@@ -1,0 +1,19 @@
+.wrapper {
+    position: relative;
+    width: 400px;
+    height: 300px;
+}
+.wrapper canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+#closeLetters {
+    display: flex;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    font-family: Roboto, sans-serif;
+    cursor: pointer;
+}
