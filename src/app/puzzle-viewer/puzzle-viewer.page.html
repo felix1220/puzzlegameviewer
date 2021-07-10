@@ -6,7 +6,12 @@
 
 <ion-content>
   <div class="wrapper" style="float:left;width:70%">
-    <canvas id="canvasPuzzle" width="500" height="500"></canvas>
+    <div *ngIf="!this.displayLarge">
+      <canvas id="canvasPuzzle" width="500" height="500" ></canvas>
+    </div>
+    <div *ngIf="this.displayLarge">
+      <canvas id="canvasPuzzle" width="800" height="800"></canvas>
+    </div>
    <!--<canvas id="canvas2" width="500" height="500"></canvas>-->
 </div>
 <div id="closeLetters" *ngIf="inLargeMode" (click)="backToMainScreen()">

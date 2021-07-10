@@ -9,4 +9,7 @@ export interface Puzzle {
     sectionHash: any;
     words:string[];
     contentSm: string;
+    FontLarge: number;
+    SpacingLarge: number;
+    StyleLarge: string;
 }
