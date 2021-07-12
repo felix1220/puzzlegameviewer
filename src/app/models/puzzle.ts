@@ -12,4 +12,5 @@ export interface Puzzle {
     FontLarge: number;
     SpacingLarge: number;
     StyleLarge: string;
+    sectionWidth: number;
 }

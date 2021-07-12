@@ -27,6 +27,7 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
   displayLarge: boolean = false;
   puzzleInfo: Puzzle[] = [];
   sections: Point2D[][] = [];
+  cellWidthTest: number;
   
   constructor(private puzzleService: PuzzleService, 
               private loaderSvc: LoaderService,
@@ -39,11 +40,11 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
   ngOnInit() {
    
     const currentPlantForms = this.platform.platforms();
-        /*if(currentPlantForms.includes("mobile") || currentPlantForms.includes("iphone")) {
+        if(currentPlantForms.includes("mobile") || currentPlantForms.includes("iphone")) {
           this.displayLarge = false;
         } else {
           this.displayLarge = true;
-        }*/
+        }
         console.log('Platforms => ', this.platform.platforms(), this.displayLarge);
        
   }
@@ -51,6 +52,7 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
     this.canvasRef.onmousemove = (evt) => {
       const pt = this.getMousePos(evt);
       this.showStandardMode();
+      this.displaySections(pt);
     }
   }
 
@@ -60,23 +62,27 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
 
     this.puzzleSubscribe = this.puzzleService.loadPuzzles().subscribe( (puzzleData: Puzzle[]) => {
           this.puzzleInfo = puzzleData;
-          this.processSections(this.puzzleInfo[0].sections);
-          console.log('Sections coming => ', this.sections);
+          //this.processSections(this.puzzleInfo[0].sections);
+         
           if(!this.displayLarge) {
           this.puzzleStyle = puzzleData[0].Style;
           this.cellWidth = puzzleData[0].Font + puzzleData[0].Spacing;
+          //this.cellWidthTest = this.cellWidth;
         } else {
           this.puzzleStyle = puzzleData[0].StyleLarge;
           this.cellWidth = puzzleData[0].FontLarge + puzzleData[0].SpacingLarge;
+          //this.cellWidthTest = this.cellWidth;
         }
+        console.log('Calc cellwidth => ', this.cellWidthTest, this.puzzleStyle);
         this.mod = puzzleData[0].modulus;
         this.populatePixelCompress(this.puzzleInfo[0].contentSm);
+        this.buildSectionDimensions();
+        this.processSectionsCalc();
         this.showStandardMode();
         this.loaderSvc.dismiss();
         this.loadCanvasMouseEvents();
         console.log('Lets look at => ', this.sectionGrp);
-        this.buildSectionDimensions();
-        this.processSectionsCalc();
+        
     });
     
     
@@ -104,20 +110,26 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
     for(const key in this.sectionGrp) {
       let pointsLs = [];
       if(this.sectionGrp.hasOwnProperty(key)) {
-        const ptTopLeft = new Point2D(this.sectionGrp[key].dimensions.minX * this.cellWidth, this.sectionGrp[key].dimensions.minY * this.cellWidth);
-        const ptTopRight = new Point2D(this.sectionGrp[key].dimensions.maxX * this.cellWidth, this.sectionGrp[key].dimensions.minY * this.cellWidth);
-        const ptBottomRight = new Point2D(this.sectionGrp[key].dimensions.maxX * this.cellWidth, this.sectionGrp[key].dimensions.maxY * this.cellWidth);
-        const ptBottomLeft = new Point2D(this.sectionGrp[key].dimensions.maxX * this.cellWidth, this.sectionGrp[key].dimensions.minY * this.cellWidth);
+        let pixel = this.allPixles.find( p => p.id === this.sectionGrp[key].dimensions.topLeftCorner.id);
+        const ptTopLeft = {...pixel.position };
+        pixel = this.allPixles.find( p => p.id === this.sectionGrp[key].dimensions.topRightCorner.id);
+        const ptTopRight = {...pixel.position};
+        pixel = this.allPixles.find( p => p.id === this.sectionGrp[key].dimensions.bottomRightCorner.id);
+        const ptBottomRight = {...pixel.position}
+        pixel = this.allPixles.find( p => p.id === this.sectionGrp[key].dimensions.bottomLeftCorner.id);
+        const ptBottomLeft = {...pixel.position }
         pointsLs.push(
           ptTopLeft,
           ptTopRight,
           ptBottomRight,
-          ptBottomRight
+          ptBottomLeft
         );
+        //console.log('Dimensions => ', key, pointsLs);
+        this.sections.push(pointsLs);
       }
     }
   }
-  private processSections(sections:string[]): void {
+  /*private processSections(sections:string[]): void {
     sections.forEach( section => {
       const lines = section.split(':');
       let pointsLs = [];
@@ -127,7 +139,7 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
       });
       this.sections.push(pointsLs);
     });
-  }
+  }*/
   private displaySections(currPos:Point2D): void {
     this.context.beginPath();
     this.context.save();
@@ -184,7 +196,7 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
             const newColors = this.processColors(colorsArr);
             for(let i =0; i < newPositions.length; i++) {
               const color = newColors[i];
-              const newPixel = new Pixel(pixelArr[0], color.r, color.g, color.b, id);
+              const newPixel = new Pixel(pixelArr[0], color.r, color.g, color.b, newPositions[i].id);
               newPixel.position = new Point2D(newPositions[i].x * this.cellWidth, newPositions[i].y * this.cellWidth);
               newPixel.section = newPositions[i].section;
               this.allPixles.push(newPixel);
@@ -216,7 +228,7 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
     let lowestY= Number.POSITIVE_INFINITY;
     let highestY = Number.NEGATIVE_INFINITY;
     let tmpY;
-    for (var i=data.length-1; i>=0; i--) {
+    for (let i=data.length-1; i>=0; i--) {
       tmpX = data[i].x;
       if (tmpX < lowestX) lowestX = tmpX;
       if (tmpX > highestX) highestX = tmpX;
@@ -225,11 +237,15 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
       if (tmpY < lowestY) lowestY = tmpY;
       if (tmpY > highestY) highestY = tmpY;
     }
+    const topLeftCorner = data.find( d => d.x === lowestX && d.y === lowestY);
+    const topRightCorner = data.find( d => d.x === highestX && d.y === lowestY);
+    const bottomRightCorner = data.find( d => d.x === highestX && d.y === highestY);
+    const bottomLeftCorner = data.find( d => d.x === lowestX && d.y === highestY);
     return {
-      minX: lowestX,
-      maxX: highestX,
-      minY: lowestY,
-      maxY: highestY
+      topLeftCorner: topLeftCorner,
+      topRightCorner: topRightCorner,
+      bottomRightCorner: bottomRightCorner,
+      bottomLeftCorner: bottomLeftCorner
     }
   }
   private processPositions(positionsArr: any[]): any[] {
@@ -241,7 +257,8 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
             posObjArr.push({
                 x: +positionsArr[i],
                 y: +positionsArr[i + 1],
-                section:positionsArr[i + 2]
+                section:positionsArr[i + 2],
+                id: this.guid()
             });
             const lastObj = posObjArr[posObjArr.length - 1];
             if (!this.sectionGrp[lastObj.section]) {
@@ -257,6 +274,14 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
         cntr++;
     }
     return posObjArr;
+  }
+  guid(): string {
+    const chars = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
+    let str = "";
+    for(var i=0; i<36; i++) {
+      str = str + ((i == 8 || i == 13 || i == 18 || i == 23) ? "-" : chars[Math.floor(Math.random()*chars.length)]);
+    };
+    return str;
   }
 
 }
