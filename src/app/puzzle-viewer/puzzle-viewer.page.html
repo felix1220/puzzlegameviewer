@@ -14,6 +14,10 @@
     </div>
    <!--<canvas id="canvas2" width="500" height="500"></canvas>-->
 </div>
+<div id="togglePanel">
+  <div id="moveCanvas" class="highlight" (click)="toggleStatus($event)" >Move Puzzle</div>
+  <div id="highlightCanvas" class="pale" (click)="toggleStatus($event)" >Highlight</div>
+</div>
 <div id="closeLetters" *ngIf="inLargeMode" (click)="backToMainScreen()">
     <span>X</span>
   </div>

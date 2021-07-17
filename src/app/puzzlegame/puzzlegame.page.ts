@@ -1218,7 +1218,7 @@ export class PuzzlegamePage implements OnInit {
     eachPixelArr.forEach( pixelStr => {
      
       const pixelArr = pixelStr.split(',');
-      const newPixel = new Pixel(pixelArr[0], +pixelArr[3], +pixelArr[4], +pixelArr[5], id);
+      const newPixel = new Pixel(pixelArr[0], +pixelArr[3], +pixelArr[4], +pixelArr[5], id.toString());
       newPixel.position = new Point2D(+pixelArr[1], +pixelArr[2]);
       this.allPixles.push(newPixel);
       id++;

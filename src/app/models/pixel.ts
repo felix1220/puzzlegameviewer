@@ -3,7 +3,7 @@ import { DirectionType } from './directions';
 import { Point2D } from './point';
 
 export class Pixel {
-    id: number;
+    id: string;
     letter: string;
     red: number;
     green: number;
@@ -12,7 +12,8 @@ export class Pixel {
     largeWidth: number;
     directionType: DirectionType;
     section: number;
-    constructor (l: string ='', r: number=0, g:number=0, b:number=0, id: number=0, 
+    originalPosition?: Point2D;
+    constructor (l: string ='', r: number=0, g:number=0, b:number=0, id: string="", 
                 pos=undefined, largeWidth=0, direction=DirectionType.None, section=0) {
         this.letter = l;
         this.red = r;

@@ -1137,7 +1137,7 @@ export class GameViewPage implements OnInit, OnDestroy {
         const newColors = this.processColors(colorsArr);
         for(let i =0; i < newPositions.length; i++) {
           const color = newColors[i];
-          const newPixel = new Pixel(pixelArr[0], color.r, color.g, color.b, id);
+          const newPixel = new Pixel(pixelArr[0], color.r, color.g, color.b, id.toString());
           newPixel.position = new Point2D(newPositions[i].x * this.cellWidth, newPositions[i].y * this.cellWidth);
           this.allPixles.push(newPixel);
           id++;
@@ -1151,7 +1151,7 @@ export class GameViewPage implements OnInit, OnDestroy {
     eachPixelArr.forEach( pixelStr => {
      
       const pixelArr = pixelStr.split(',');
-      const newPixel = new Pixel(pixelArr[0], +pixelArr[3], +pixelArr[4], +pixelArr[5], id);
+      const newPixel = new Pixel(pixelArr[0], +pixelArr[3], +pixelArr[4], +pixelArr[5], id.toString());
       newPixel.position = new Point2D(+pixelArr[1], +pixelArr[2]);
       this.allPixles.push(newPixel);
       id++;
