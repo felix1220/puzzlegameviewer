@@ -7,6 +7,7 @@ import { LoaderService } from '../services/loader/loader.service';
 import { PuzzleService } from '../services/puzzle.service';
 import { Platform } from '@ionic/angular';
 import { Key } from 'protractor';
+import { threadId } from 'worker_threads';
 
 @Component({
   selector: 'app-puzzle-viewer',
@@ -91,14 +92,12 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
         this.mod = puzzleData[0].modulus;
         this.populatePixelCompress(this.puzzleInfo[0].contentSm);
         this.processAllMins();
-         this.processSections(this.puzzleInfo[0].sections);
-        //this.buildSectionDimensions();
-       
-        //this.processSectionsCalc();
+        this.processSections();
         console.log('Lets look at => ', this.sections);
         this.showStandardMode();
+        //this.loadSectionsNew();
         this.loaderSvc.dismiss();
-        //this.loadCanvasMouseEvents();
+        this.loadCanvasMouseEvents();
        
         
     });
@@ -124,9 +123,8 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
     const numOfCols = 10;
     const newWidth = Math.floor(this.canvasRef.width / numOfCols);
     console.log('New Width => ', newWidth);
+    const theSection = this.sectionGrp[this.hitBlock[0].section];
     const originalSection = this.sectionGrp[this.hitBlock[0].section].raw;
-    const minX = this.sectionGrp[this.hitBlock[0].section].minX;
-    const minY = this.sectionGrp[this.hitBlock[0].section].minY;
     const newBlock = this.hitBlock.map( m => {
       
       const originalP = originalSection.find( f => f.id === m.id);
@@ -138,7 +136,7 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
       
       return {
         ...m,
-        originalPosition: originalP ? new Point2D(originalP.x - minX, originalP.y - minY) : new Point2D(-1,-1)
+        originalPosition: originalP ? new Point2D(originalP.x - theSection.minXSrc, originalP.y - theSection.minYSrc) : new Point2D(-1,-1)
       }
     });
     console.log('new block => ', newBlock);
@@ -157,7 +155,19 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
     this.context.stroke();
     this.context.restore();
   }
-  private processSections(sections:string[]): void {
+  private processSections(): void {
+    for (const key in this.sectionGrp) {
+      if (this.sectionGrp.hasOwnProperty(key)){
+        let pointsLs = [];
+        pointsLs.push(new Point2D(this.sectionGrp[key].minX, this.sectionGrp[key].minY));
+        pointsLs.push(new Point2D(this.sectionGrp[key].maxX, this.sectionGrp[key].minY));
+        pointsLs.push(new Point2D(this.sectionGrp[key].maxX, this.sectionGrp[key].maxY));
+        pointsLs.push(new Point2D(this.sectionGrp[key].minX, this.sectionGrp[key].maxY));
+        this.sections.push(pointsLs);
+      }
+    }
+  }
+  /*private processSections(sections:string[]): void {
     sections.forEach( section => {
       const lines = section.split(':');
       let pointsLs = [];
@@ -175,7 +185,7 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
       });
       this.sections.push(pointsLs);
     });
-  }
+  }*/
   private displaySections(currPos:Point2D): void {
     this.context.beginPath();
     this.context.save();
@@ -213,7 +223,7 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
 
     this.hitBlock = this.allPixles.filter( f => f.position.x >= minX && f.position.x <= maxX && f.position.y >= minY && f.position.y <= maxY );
     console.log('Hit block section => ', this.hitBlock[0].section);
-    console.log('Hit Block end => ', this.hitBlock[this.hitBlock.length-1].section);
+    //console.log('Hit Block end => ', this.hitBlock[this.hitBlock.length-1].section);
   }
   private loadDataToCanvas(): void {
     this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
@@ -244,7 +254,7 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
           //debugger;
           const positionsArr = pixelArr[1].split(',');
           const colorsArr = pixelArr[2].split(',');
-          const newPositions = this.processPositions(positionsArr, id);
+          const newPositions = this.processPositions(positionsArr, id, pixelArr[0]);
             const newColors = this.processColors(colorsArr);
             for(let i =0; i < newPositions.length; i++) {
               const color = newColors[i];
@@ -267,17 +277,34 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
     for (const key in this.sectionGrp) {
       if (this.sectionGrp.hasOwnProperty(key)){
         //debugger;
-        const allXs = this.sectionGrp[key].raw.map( m => m.x);
-        const allYs = this.sectionGrp[key].raw.map( m => m.y);
-        allXs.sort((a, b) => a - b);
-        allYs.sort((a, b) => a - b);
-        this.sectionGrp[key].minX = allXs[0];
-        this.sectionGrp[key].minY = allYs[0];
+        const raw = this.sectionGrp[key].raw;
+        const onlyXs = raw.map( m => m.x);
+        const cloneXs = [...onlyXs];
+        const onlyYs = raw.map( m => m.y);
+        const cloneYs = [...onlyYs];
+        onlyXs.sort((a, b) => a - b);
+        onlyYs.sort((a, b) => a - b);
+        cloneXs.sort((a, b) => b - a);
+        cloneYs.sort((a, b) => b - a);
+       const minX  = onlyXs[0] * this.cellWidth;
+       const minY = onlyYs[0] * this.cellWidth - this.cellWidth;
+       const maxX = cloneXs[0] * this.cellWidth + this.cellWidth;
+       const maxY = cloneYs[0] * this.cellWidth;
+       
+        this.sectionGrp[key].minX = minX;
+        this.sectionGrp[key].minY = minY;
+        this.sectionGrp[key].maxX = maxX;
+        this.sectionGrp[key].maxY = maxY;
+        this.sectionGrp[key].minXSrc = onlyXs[0];
+        this.sectionGrp[key].minYSrc = onlyYs[1];
+        this.sectionGrp[key].maxXSrc = cloneXs[0];
+        this.sectionGrp[key].maxYSrc = cloneYs[0];
+
       }
     }
   }
   private loadSectionsNew(): void {
-    const raw = this.sectionGrp['0-0'].raw;
+    const raw = this.sectionGrp['2-0'].raw;
     const onlyXs = raw.map( m => m.x);
     const cloneXs = [...onlyXs];
     const onlyYs = raw.map( m => m.y);
@@ -286,6 +313,26 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
     onlyYs.sort((a, b) => a - b);
     cloneXs.sort((a, b) => b - a);
     cloneYs.sort((a, b) => b - a);
+   const minX  = onlyXs[0] * this.cellWidth;
+   const minY = onlyYs[0] * this.cellWidth - this.cellWidth;
+   const maxX = cloneXs[0] * this.cellWidth + this.cellWidth;
+   const maxY = cloneYs[0] * this.cellWidth;
+   this.context.beginPath();
+    this.context.save();
+   
+          this.context.moveTo(minX , minY);
+          this.context.lineTo(maxX, minY);
+          this.context.moveTo(maxX , minY);
+          this.context.lineTo(maxX , maxY);
+          this.context.moveTo(minX , minY);
+          this.context.lineTo(minX , maxY);
+          this.context.moveTo(minX,maxY);
+          this.context.lineTo(maxX , maxY);
+          /*this.context.moveTo(minX , maxY);
+          this.context.lineTo(minX , minY);*/
+      
+     this.context.stroke();
+    this.context.restore();
   }
   private processColors(colorsArr: any[]): any[] {
     const len = colorsArr.length - 1;
@@ -302,7 +349,7 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
     }
     return posObjArr;
   }
-  private processPositions(positionsArr: any[], incr:number): any[] {
+  private processPositions(positionsArr: any[], incr:number, letter: string): any[] {
     const len = positionsArr.length - 1;
     const posObjArr:any[] = []
     let cntr = 0;
@@ -314,7 +361,8 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
                 x: +positionsArr[i],
                 y: +positionsArr[i + 1],
                 section:positionsArr[i + 2],
-                id: this.guid()
+                id: this.guid(),
+                letter: letter
             });
 
             const lastObj = posObjArr[posObjArr.length - 1];
@@ -323,7 +371,13 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
               this.sectionGrp[lastObj.section] = {
                 raw:[],
                 minX:minX,
-                minY:minY
+                minY:minY,
+                maxX:0,
+                maxY:0,
+                minXSrc:0,
+                minYSrc:0,
+                maxXSrc:0,
+                maxYSrc:0
               };
               this.sectionGrp[lastObj.section].raw.push(lastObj);
             } else {
