@@ -24,14 +24,17 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
   mod: number;
   allPixles: Pixel[];
   isMouseDown: boolean = false;
+  statusMove: boolean = true;
+  statusHighlight: boolean = false; 
   initialDown: Point2D;
   sectionGrp:any = {};
   displayLarge: boolean = false;
   puzzleInfo: Puzzle[] = [];
-  sections: Point2D[][] = [];
+  sections: any[][] = [];
   cellWidthTest: number;
   normalizeWidth: number;
   hitBlock: Pixel[] = [];
+  inLargeMode: boolean = false;
 
   constructor(private puzzleService: PuzzleService, 
               private loaderSvc: LoaderService,
@@ -53,21 +56,36 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
        
   }
   private loadCanvasMouseEvents(): void {
+    this.canvasRef.onmousedown = (evt) => {
+      const pt = this.getMousePos(evt);
+      this.isMouseDown = true;
+      if(this.statusMove && !this.inLargeMode) {
+        this.showStandardMode();
+      }
+      this.initialDown = new Point2D(pt.x, pt.y);
+    }
+    this.canvasRef.onmouseup = (evt) => {
+      this.isMouseDown = false;
+    }
     this.canvasRef.onmousemove = (evt) => {
       const pt = this.getMousePos(evt);
-      //if(!this.hitBlock.length) {
+     // if(this.isMouseDown && this.statusMove && !this.inLargeMode) {
+       /* let deltaX = pt.x - this.initialDown.x;
+        let deltaY = pt.y - this.initialDown.y;
+        this.initialDown = new Point2D(pt.x, pt.y);
+        this.updatePuzzlePosition(deltaX, deltaY);
+        this.updateSectionPosition(deltaX, deltaY);*/
         this.showStandardMode();
-        this.displaySections(pt);
+        this.loadSectionsNew();
+        this.findSection(pt);
+     // }
+      //if(!this.hitBlock.length) {
+       // this.showStandardMode();
+       // this.displaySections(pt);
      /* } else {
         this.showSection();
       }*/
     
-    }
-    this.canvasRef.onmousedown = (evt) => {
-      //this.showStandardMode();
-      const justX = this.sectionGrp[this.hitBlock[0].section].raw.map( m => m.x)
-      //console.log('The block => ', justX);
-      this.showSection();
     }
   }
 
@@ -95,7 +113,7 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
         this.processSections();
         console.log('Lets look at => ', this.sections);
         this.showStandardMode();
-        //this.loadSectionsNew();
+        this.loadSectionsNew();
         this.loaderSvc.dismiss();
         this.loadCanvasMouseEvents();
        
@@ -155,15 +173,44 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
     this.context.stroke();
     this.context.restore();
   }
-  private processSections(): void {
+  private updatePuzzlePosition(deltaX: number, deltaY: number): void {
+    this.allPixles.forEach(pixel => {
+      let oldX = pixel.position.x;
+      let oldY = pixel.position.y;
+      pixel.position = new Point2D(oldX + deltaX, oldY + deltaY);
+    })
+  }
+  private updateSectionPosition(deltaX: number, deltaY: number): void {
+    this.sections = [];
     for (const key in this.sectionGrp) {
       if (this.sectionGrp.hasOwnProperty(key)){
         let pointsLs = [];
+        this.sectionGrp[key].minX = this.sectionGrp[key].minX + deltaX;
+        this.sectionGrp[key].maxX = this.sectionGrp[key].maxX + deltaX;
+        this.sectionGrp[key].minY = this.sectionGrp[key].minY + deltaY;
+        this.sectionGrp[key].maxY = this.sectionGrp[key].maxY + deltaY;
         pointsLs.push(new Point2D(this.sectionGrp[key].minX, this.sectionGrp[key].minY));
         pointsLs.push(new Point2D(this.sectionGrp[key].maxX, this.sectionGrp[key].minY));
         pointsLs.push(new Point2D(this.sectionGrp[key].maxX, this.sectionGrp[key].maxY));
         pointsLs.push(new Point2D(this.sectionGrp[key].minX, this.sectionGrp[key].maxY));
         this.sections.push(pointsLs);
+      }
+    }
+  }
+  private processSections(): void {
+    let re = /[0-9]+/;
+    for (const key in this.sectionGrp) {
+      if (this.sectionGrp.hasOwnProperty(key)){
+        if(re.test(key)) {
+          let pointsLs = [];
+
+          pointsLs.push(new Point2D(this.sectionGrp[key].minX, this.sectionGrp[key].minY));
+          pointsLs.push(new Point2D(this.sectionGrp[key].maxX, this.sectionGrp[key].minY));
+          pointsLs.push(new Point2D(this.sectionGrp[key].maxX, this.sectionGrp[key].maxY));
+          pointsLs.push(new Point2D(this.sectionGrp[key].minX, this.sectionGrp[key].maxY));
+          pointsLs.push(key);
+          this.sections.push(pointsLs);
+        }
       }
     }
   }
@@ -186,6 +233,18 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
       this.sections.push(pointsLs);
     });
   }*/
+  private findSection(currPos: Point2D): void {
+    console.log('All sections => ', this.sections);
+    for(let i=0; i < this.sections.length; i++) {
+      const section  = this.sections[i];
+      if(currPos.x > section[0].x && currPos.x < section[1].x && currPos.y > section[0].y && currPos.y < section[3].y) {
+        console.log(currPos.x + ' > ' + section[0].x + ',' + currPos.x + ' < ' + section[1].x, section[4]);
+        console.log(currPos.y + ' > ' + section[0].y + ',' + currPos.y + ' < ' + section[3].y, this.sectionGrp['1-3'], this.sectionGrp['2-0']);
+        //this.processBlock(section);
+        break;
+      }
+    }
+  }
   private displaySections(currPos:Point2D): void {
     this.context.beginPath();
     this.context.save();
@@ -304,21 +363,26 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
     }
   }
   private loadSectionsNew(): void {
-    const raw = this.sectionGrp['2-0'].raw;
-    const onlyXs = raw.map( m => m.x);
-    const cloneXs = [...onlyXs];
-    const onlyYs = raw.map( m => m.y);
-    const cloneYs = [...onlyYs];
-    onlyXs.sort((a, b) => a - b);
-    onlyYs.sort((a, b) => a - b);
-    cloneXs.sort((a, b) => b - a);
-    cloneYs.sort((a, b) => b - a);
-   const minX  = onlyXs[0] * this.cellWidth;
-   const minY = onlyYs[0] * this.cellWidth - this.cellWidth;
-   const maxX = cloneXs[0] * this.cellWidth + this.cellWidth;
-   const maxY = cloneYs[0] * this.cellWidth;
-   this.context.beginPath();
+
+    this.context.beginPath();
     this.context.save();
+
+    for (const key in this.sectionGrp) {
+      if (this.sectionGrp.hasOwnProperty(key) && (key=== '1-3' || key === '2-0')){
+        const raw = this.sectionGrp[key].raw;
+        const onlyXs = raw.map( m => m.x);
+        const cloneXs = [...onlyXs];
+        const onlyYs = raw.map( m => m.y);
+        const cloneYs = [...onlyYs];
+        onlyXs.sort((a, b) => a - b);
+        onlyYs.sort((a, b) => a - b);
+        cloneXs.sort((a, b) => b - a);
+        cloneYs.sort((a, b) => b - a);
+        const minX  = onlyXs[0] * this.cellWidth;
+        const minY = onlyYs[0] * this.cellWidth - this.cellWidth;
+        const maxX = cloneXs[0] * this.cellWidth + this.cellWidth;
+        const maxY = cloneYs[0] * this.cellWidth;
+  
    
           this.context.moveTo(minX , minY);
           this.context.lineTo(maxX, minY);
@@ -330,6 +394,9 @@ export class PuzzleViewerPage implements OnInit, AfterViewInit {
           this.context.lineTo(maxX , maxY);
           /*this.context.moveTo(minX , maxY);
           this.context.lineTo(minX , minY);*/
+      }
+    }
+    
       
      this.context.stroke();
     this.context.restore();
