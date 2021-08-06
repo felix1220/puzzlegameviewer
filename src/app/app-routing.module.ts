@@ -29,6 +29,10 @@ const routes: Routes = [
   },  {
     path: 'puzzle-viewer',
     loadChildren: () => import('./puzzle-viewer/puzzle-viewer.module').then( m => m.PuzzleViewerPageModule)
+  },
+  {
+    path: 'puzzle-view-helper',
+    loadChildren: () => import('./puzzle-view-helper/puzzle-view-helper.module').then( m => m.PuzzleViewHelperPageModule)
   }
 
 ];

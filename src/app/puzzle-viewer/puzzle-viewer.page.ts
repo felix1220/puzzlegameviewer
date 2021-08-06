@@ -6,9 +6,6 @@ import { Puzzle } from '../models/puzzle';
 import { LoaderService } from '../services/loader/loader.service';
 import { PuzzleService } from '../services/puzzle.service';
 import { Platform } from '@ionic/angular';
-import { Key } from 'protractor';
-import { threadId } from 'worker_threads';
-import { TestBed } from '@angular/core/testing';
 
 @Component({
   selector: 'app-puzzle-viewer',
