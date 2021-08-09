@@ -9,6 +9,7 @@ import { PuzzleService } from '../services/puzzle.service';
 import { Platform } from '@ionic/angular';
 import { ThrowStmt } from '@angular/compiler';
 import { Section } from '../models/section';
+import { PuzzleImports } from '../models/puzzleImports';
 
 @Component({
   selector: 'app-puzzle-view-helper',
@@ -32,6 +33,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   plainPixels: Pixel[];
   plainLocations: Location[];
   plainSections: any;
+  puzzleConstants:PuzzleImports;
 
   constructor(private puzzleService: PuzzleService, 
     private loaderSvc: LoaderService,
@@ -57,7 +59,19 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     this.canvasRef = <HTMLCanvasElement>document.getElementById('canvasPuzzle');
     this.context = this.canvasRef.getContext('2d');
     this.puzzleSubscribe = this.puzzleService.loadPuzzles().subscribe( (puzzleData: Puzzle[]) => {
+      if(!this.displayLarge) {
+        this.puzzleStyle = puzzleData[0].Style;
+        this.cellWidth = puzzleData[0].Font + puzzleData[0].Spacing;
+        //this.cellWidthTest = this.cellWidth;
+      } else {
+        this.puzzleStyle = puzzleData[0].StyleLarge;
+        this.cellWidth = puzzleData[0].FontLarge + puzzleData[0].SpacingLarge;
+        //this.normalizeWidth = puzzleData[0].Font + puzzleData[0].Spacing;
+        //this.cellWidthTest = this.cellWidth;
+      }
+      this.puzzleConstants = new PuzzleImports(this.puzzleStyle, this.cellWidth,0 );
       this.buildAbstractLayer(puzzleData[0].contentSm);
+      this.buildSections();
     });
 
   }
@@ -65,6 +79,9 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     if(this.puzzleSubscribe) {
       this.puzzleSubscribe.unsubscribe();
     }
+  }
+  private prepNormalView(): void {
+    
   }
   private processColors(colorsArr: any[]): any[] {
     const len = colorsArr.length - 1;
@@ -95,6 +112,13 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       cloneXs.sort((a, b) => b - a);
       cloneYs.sort((a, b) => b - a);
       this.plainSections[section] = new Section(onlyXs[0],cloneXs[0],onlyXs[0],cloneYs[0]);
+      const deltas:Point2D[] =  [];
+      this.plainLocations.filter( p => {
+        const deltaX = p.point.x - onlyXs[0];
+        const deltaY = p.point.y - onlyYs[0];
+        deltas.push(new Point2D(deltaX, deltaY));
+      });
+      this.plainSections[section].deltas = [...deltas];
     });
 
   }
@@ -125,6 +149,28 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       });
 
     });
+  }
+  toggleStatus(event): void {
+    event.srcElement.classList.add('highlight');
+    event.srcElement.classList.remove('pale')
+    if (event.srcElement.id === 'moveCanvas') {
+      const highlightElem = document.getElementById('highlightCanvas');
+      highlightElem.classList.add('pale');
+      highlightElem.classList.remove('highlight')
+      this.statusMove = true;
+      this.statusHighlight = false;
+     
+    }
+    else {
+      const moveElem = document.getElementById('moveCanvas');
+      moveElem.classList.add('pale');
+      moveElem.classList.remove('highlight');
+      this.statusMove = false;
+      this.statusHighlight = true;
+     
+      //console.log(' Highlight =>', this.puzzelSections);
+    }
+     
   }
 
 }

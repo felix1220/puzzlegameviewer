@@ -1,9 +1,24 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>puzzle-view-helper</ion-title>
+    <ion-title>Puzzle Viewer</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
-
+  <div class="wrapper" style="float:left;width:70%">
+    <div *ngIf="!this.displayLarge">
+      <canvas id="canvasPuzzle" width="500" height="500" ></canvas>
+    </div>
+    <div *ngIf="this.displayLarge">
+      <canvas id="canvasPuzzle" width="800" height="800"></canvas>
+    </div>
+   <!--<canvas id="canvas2" width="500" height="500"></canvas>-->
+</div>
+<div id="togglePanel">
+  <div id="moveCanvas" class="highlight" (click)="toggleStatus($event)" >Move Puzzle</div>
+  <div id="highlightCanvas" class="pale" (click)="toggleStatus($event)" >Highlight</div>
+</div>
+<div id="closeLetters" *ngIf="inLargeMode" (click)="backToMainScreen()">
+    <span>X</span>
+  </div>
 </ion-content>
