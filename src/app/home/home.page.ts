@@ -100,7 +100,7 @@ export class HomePage implements OnInit, OnDestroy{
       this.nav.navigateForward(`/details/${event.event.id}`);
     }
     goPuzzle(): void {
-      this.nav.navigateForward('/puzzle-viewer');
+      this.nav.navigateForward('/puzzle-view-helper');
     }
     async showToastMessage(msg: string) {
       console.log(msg);

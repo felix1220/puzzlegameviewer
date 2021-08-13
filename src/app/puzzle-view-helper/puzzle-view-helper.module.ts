@@ -7,6 +7,7 @@ import { IonicModule } from '@ionic/angular';
 import { PuzzleViewHelperPageRoutingModule } from './puzzle-view-helper-routing.module';
 
 import { PuzzleViewHelperPage } from './puzzle-view-helper.page';
+import { PuzzleService } from '../services/puzzle.service';
 
 @NgModule({
   imports: [
@@ -15,6 +16,7 @@ import { PuzzleViewHelperPage } from './puzzle-view-helper.page';
     IonicModule,
     PuzzleViewHelperPageRoutingModule
   ],
-  declarations: [PuzzleViewHelperPage]
+  declarations: [PuzzleViewHelperPage],
+  providers:[PuzzleService]
 })
 export class PuzzleViewHelperPageModule {}
