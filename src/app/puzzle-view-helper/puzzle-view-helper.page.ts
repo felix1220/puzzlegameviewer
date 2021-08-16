@@ -236,7 +236,6 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     this.largeLayout = [];
     let tempLocals:Location[] = [];
     const numOfCols = 10;
-    this.largeLayout = [];
     const newWidth = Math.floor(this.canvasRef.width / numOfCols);
     console.log('New Width => ', newWidth);
     const secLocations = this.plainLocations.filter( f=> f.section === this.hitSection);
@@ -290,6 +289,41 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       });
       this.largeLayout.push(tempLocals);
     }//end if
+    //lets check bottom
+    let bottomRow = row + 1;
+    let sectionBottom = row + '-' + bottomRow;
+    const bottomLocation = this.plainLocations.find( f => f.section === sectionBottom);
+    if(bottomLocation) {
+      tempLocals = [];
+      const bottomLocationLs = this.plainLocations.filter(f => f.section === sectionBottom);
+      bottomLocationLs.forEach((local:Location) => {
+        const p = new Point2D(local.point.x * newWidth, (local.point.y * newWidth + newWidth) + cloneYs[0]);
+        const l = new Location(p, local.section, local.id);
+        tempLocals.push(l);
+      });
+      this.largeLayout.push(tempLocals);
+    }
+    //lets check top
+    let topRow = row - 1;
+    let sectionTop = row + '-' + topRow;
+    const topLocation = this.plainLocations.find( f => f.section === sectionTop);
+    if(topLocation){
+      tempLocals = [];
+      const topLocationsLs = this.plainLocations.filter( f => f.section === sectionTop);
+      topLocationsLs.forEach((local:Location) => {
+        const p = new Point2D(local.point.x * newWidth, local.point.y * newWidth + newWidth);
+        const l = new Location(p, local.section, local.id);
+        tempLocals.push(l);
+      });
+      const leftYs = tempLocals.map( m => m.point.y);
+      leftYs.sort((a, b) => b - a);
+      tempLocals.forEach((local:Location) => {
+        local.point.y = local.point.y - leftYs[0];
+      });
+      this.largeLayout.push(tempLocals);
+    }
+    //lets check top right
+    
 
   }
   private drawBoundary(): void {
