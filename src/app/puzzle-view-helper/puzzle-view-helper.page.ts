@@ -38,6 +38,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   sections: any[][] = [];
   hitBlock: Pixel[] = [];
   hitSection: string = '';
+  hitCorner: Pixel;
   largeLayout: Location[][] = [];
 
   constructor(private puzzleService: PuzzleService, 
@@ -93,6 +94,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     return new Point2D(evt.clientX - rect.left, evt.clientY - rect.top);
   }
   private showStandardMode() {
+    this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
     this.loadDataToCanvas();
         
     //this.displaySectionOutline();
@@ -109,7 +111,16 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       const pt = this.getMousePos(evt);
       this.isMouseDown = true;
       if(this.statusMove && !this.inLargeMode) {
-        this.showStandardMode();
+        
+        this.showStandardMode(); 
+      
+      }
+      if(this.statusHighlight && !this.inLargeMode) {
+        
+        this.inLargeMode = true;
+        this.statusMove = true;
+        this.statusHighlight = false;
+        this.showSection();
       }
       this.initialDown = new Point2D(pt.x, pt.y);
     };
@@ -120,21 +131,64 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         let deltaY = pt.y - this.initialDown.y;
         this.initialDown = new Point2D(pt.x, pt.y);
         this.updatePuzzlePosition(deltaX, deltaY);
+        this.updateSectionPosition(deltaX, deltaY);
         this.showStandardMode();
       }
       if(!this.isMouseDown && this.statusHighlight && !this.inLargeMode) {
         this.showStandardMode();
         this.displaySections(pt);
       }
+      if(!this.isMouseDown && this.statusMove && this.inLargeMode) {
+        this.showSection();
+      }
+      if(this.isMouseDown && this.statusMove && this.inLargeMode) {
+        let deltaX = pt.x - this.initialDown.x;
+        let deltaY = pt.y - this.initialDown.y;
+        this.initialDown = new Point2D(pt.x, pt.y);
+        this.updateLargeLetters(deltaX, deltaY);
+        this.showSection();
+      }
     };
     this.canvasRef.onmouseup = (evt) => {
       this.isMouseDown = false;
     }
   }
-  
+  backToMainScreen(): void {
+    this.inLargeMode = false;
+    this.statusMove = true;
+    this.throwToggleStatus();
+    this.showStandardMode();
+    
+  }
+  throwToggleStatus(): void {
+    const moveElem = document.getElementById('moveCanvas');
+    const highlightElem = document.getElementById('highlightCanvas');
+    if(this.statusMove) {
+      
+      moveElem.classList.add('highlight');
+      moveElem.classList.remove('pale');
+      highlightElem.classList.add('pale');
+      highlightElem.classList.remove('hightlight');
+    } else {
+     
+      highlightElem.classList.add('highlight');
+      highlightElem.classList.remove('pale');
+      moveElem.classList.remove('highlight');
+      moveElem.classList.add('pale');
+    }
+  }
   ngOnDestroy(): void {
     if(this.puzzleSubscribe) {
       this.puzzleSubscribe.unsubscribe();
+    }
+  }
+  private updateSectionPosition(deltaX: number, deltaY: number): void {
+    for(let i=0; i < this.sections.length; i++) {
+      const section  = this.sections[i];
+      section.forEach(s => {
+        s.x = s.x + deltaX;
+        s.y = s.y + deltaY;
+      });
     }
   }
   private displaySections(currPos:Point2D): void {
@@ -144,6 +198,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     //this.sections.forEach( section => {
       for(let i=0; i < this.sections.length; i++) {
         const section  = this.sections[i];
+     
        // if(i === 0)
           // console.log(currPos.x > section[0].x , '(' + currPos.x + ',' + section[0].x + ')', currPos.x < section[1].x, '(' + currPos.x + ',' + section[1].x + ')', currPos.y > section[0].y, '(' + currPos.y + ',' + section[0].y + ')', currPos.y < section[1].y, '(' + currPos.y + ',' + section[1].y + ')')
 
@@ -159,7 +214,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
           this.context.lineTo(section[0].x , section[0].y);
           this.hitSection = section[4];
           this.processBlock(section);
-         
+        
           break;
         }
       }//end for
@@ -174,7 +229,24 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     const maxY = sectionBlock[3].y;
 
     this.hitBlock = this.allPixles.filter( f => f.position.x >= minX && f.position.x <= maxX && f.position.y >= minY && f.position.y <= maxY );
-    console.log('Hit block section => ', this.hitSection);
+    const justXs = this.hitBlock.map( m => m.position.x);
+    const justYs = this.hitBlock.map( m => m.position.y);
+    justXs.sort((a, b) => a - b);
+    justYs.sort((a, b) => a - b);
+   
+    let yIter = 0;
+    while(yIter < justYs.length) {
+      this.hitCorner = this.hitBlock.find(f => f.position.x === justXs[0] && f.position.y === justYs[yIter])
+      if(this.hitCorner) {
+        console.log(' The left corner => ', this.hitCorner, justXs[0], justYs[yIter]);
+        break;
+      }
+      yIter++;
+    }
+
+   
+    console.log('Hit block section => ', this.hitBlock);
+    this.prepLargeSelection();
     //console.log('Hit Block end => ', this.hitBlock[this.hitBlock.length-1].section);
   }
   private prepSections(): void {
@@ -195,7 +267,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
   private loadDataToCanvas(): void {
-    this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+   
     this.context.beginPath();
     this.context.save();
     
@@ -232,6 +304,31 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     }
     return posObjArr;
   }
+  private updateLargeLetters(deltaX: number, deltaY: number): void {
+    this.largeLayout.forEach((layoutArr:Location[]) => {
+      layoutArr.forEach((local:Location) => {
+        local.point.x = local.point.x + deltaX;
+        local.point.y = local.point.y + deltaY;
+      });
+    });
+  }
+  private showSection(): void {
+    this.context.clearRect(0, 0, this.canvasRef.width, this.canvasRef.height);
+    this.context.beginPath();
+    this.context.save();
+    const fontBig: string = 'bold 80px Courier';
+    this.largeLayout.forEach((layoutArr:Location[]) => {
+      layoutArr.forEach((local:Location) => {
+        const pixel = this.plainPixels.find( f => f.id === local.id);
+        let strRgb = `rgba(${pixel.red},${pixel.green},${pixel.blue},1.0)`;
+        this.context.font = fontBig;
+        this.context.fillStyle = strRgb;
+        this.context.fillText(pixel.letter, local.point.x, local.point.y);
+      });
+    });
+    this.context.stroke();
+    this.context.restore();
+  }
   private prepLargeSelection(): void {
     this.largeLayout = [];
     let tempLocals:Location[] = [];
@@ -256,22 +353,51 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     const sectionArr = this.hitSection.split('-');
     const row = +sectionArr[0];
     const col = +sectionArr[1];
+    console.log('The Max X => ', cloneXs[0]);
     //lets check to the right
     let rightCol =  col + 1;
     let newSectionRight = row + '-' + rightCol;
-    const rightSection = this.plainLocations.find( f => f.section === newSectionRight)
-    if(rightSection) {
+    //const rightSection = this.plainSections.find( f => f.section === newSectionRight)
+    if(this.plainSections[newSectionRight]) {
       tempLocals = [];
-      const rightLocationLs = this.plainLocations.filter( f => f.section === newSectionRight)
-      rightLocationLs.forEach((local:Location) => {
-        const p = new Point2D(local.point.x * newWidth + cloneXs[0], local.point.y * newWidth + newWidth);
-        const l = new Location(p, local.section, local.id);
-        tempLocals.push(l);
+      //const newSectionPixels = this.allPixles.filter(f => f.section === newSectionRight);
+      const secRightLocations = this.plainLocations.filter( f=> f.section === newSectionRight);
+      /*const secXs = newSectionPixels.map( m => m.position.x);
+      const secYs = newSectionPixels.map( m => m.position.y);
+      secXs.sort((a, b) => a - b);
+      secYs.sort((a, b) => a - b);
+      let yIter = 0;
+      let hitRight:Pixel = null;
+     // console.log(' All right pixels => ', newSectionPixels);
+      while(yIter < secYs.length) {
+        hitRight = newSectionPixels.find(f => f.position.x === secXs[0] && f.position.y === secYs[yIter])
+        if(hitRight) {
+          break;
+        }
+        yIter++;
+      }
+      const deltaX = (hitRight.position.x / this.puzzleConstants.cellWidth - this.hitCorner.position.x / this.puzzleConstants.cellWidth) * newWidth;
+      const deltaY = (hitRight.position.y / this.puzzleConstants.cellWidth - this.hitCorner.position.y / this.puzzleConstants.cellWidth) * newWidth;*/
+      //console.log('Hit calc => ', hitRight, this.hitCorner, (hitRight.position.x / this.puzzleConstants.cellWidth - this.hitCorner.position.x / this.puzzleConstants.cellWidth), (hitRight.position.y / this.puzzleConstants.cellWidth - this.hitCorner.position.y / this.puzzleConstants.cellWidth),  this.puzzleConstants.cellWidth, newWidth);
+      //const rightLocationLs = this.plainSections.filter( f => f.section === newSectionRight)
+      console.log('The delta => ', this.plainSections[newSectionRight].deltas);
+      secRightLocations.forEach((local:Location, i) => {
+        //if(i < 22) {
+          //const p = new Point2D(deltaX + (local.point.x * newWidth) , (deltaY + (local.point.y * newWidth)) + newWidth);
+          //const p = new Point2D(deltaX  , deltaY + newWidth);
+          const p = new Point2D(local.point.x * newWidth , local.point.y * newWidth + newWidth);
+          const l = new Location(p, newSectionRight, local.id);
+          tempLocals.push(l);
+       // }
+       
       });
       this.largeLayout.push(tempLocals);
     }
+    console.log('Showing prep large => ', this.largeLayout);
+    /*
     //lets check to the left
     let leftCol = col - 1;
+    let leftXs = []
     let newSectionLeft = row + '-' + leftCol;
     const leftSection = this.plainLocations.find( f => f.section === newSectionLeft);
     if(leftSection) {
@@ -282,7 +408,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         const l = new Location(p, local.section, local.id);
         tempLocals.push(l);
       });
-      const leftXs = tempLocals.map( m => m.point.x);
+      leftXs = tempLocals.map( m => m.point.x);
       leftXs.sort((a, b) => b - a);
       tempLocals.forEach((local:Location) => {
         local.point.x = local.point.x - leftXs[0];
@@ -305,6 +431,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     }
     //lets check top
     let topRow = row - 1;
+    let leftYs = [];
     let sectionTop = row + '-' + topRow;
     const topLocation = this.plainLocations.find( f => f.section === sectionTop);
     if(topLocation){
@@ -315,7 +442,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         const l = new Location(p, local.section, local.id);
         tempLocals.push(l);
       });
-      const leftYs = tempLocals.map( m => m.point.y);
+      leftYs = tempLocals.map( m => m.point.y);
       leftYs.sort((a, b) => b - a);
       tempLocals.forEach((local:Location) => {
         local.point.y = local.point.y - leftYs[0];
@@ -323,7 +450,73 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       this.largeLayout.push(tempLocals);
     }
     //lets check top right
-    
+    topRow = row - 1;
+    rightCol =  col + 1;
+    let sectionTopRight = topRow + '-' + rightCol;
+    const topRightLocations = this.plainLocations.find( f => f.section === sectionTopRight);
+    if(topRightLocations) {
+      tempLocals = [];
+      const topRightLocationsLs = this.plainLocations.filter( f => f.section === sectionTopRight);
+      topRightLocationsLs.forEach((local:Location) => {
+        const p = new Point2D(local.point.x * newWidth + cloneXs[0], (local.point.y * newWidth + newWidth) - leftYs[0]);
+        const l = new Location(p, local.section, local.id);
+        tempLocals.push(l);
+      });
+      this.largeLayout.push(tempLocals);
+    }
+    //lets check bottom right
+    bottomRow = row + 1;
+    rightCol =  col + 1;
+    let sectionBottomRight = bottomRow + '-' + rightCol;
+    const bottomRightLocations = this.plainLocations.find( f => f.section === sectionBottomRight);
+    if(bottomRightLocations) {
+      tempLocals = [];
+      const bottomRightLocationsLs = this.plainLocations.filter( f => f.section === sectionBottomRight);
+      bottomRightLocationsLs.forEach((local:Location) => { 
+        const p = new Point2D(local.point.x * newWidth + cloneXs[0], (local.point.y * newWidth + newWidth) + cloneYs[0]);
+        const l = new Location(p, local.section, local.id);
+        tempLocals.push(l);
+      });
+      this.largeLayout.push(tempLocals);
+    }
+    //lets check top left
+    leftCol = col - 1;
+    topRow = row - 1;
+    let sectionTopLeft = topRow + '-' + leftCol;
+    const topLeftLocations = this.plainLocations.find( f => f.section === sectionTopLeft);
+    if(topLeftLocations) {
+      tempLocals = [];
+      const topLeftLocationsLs = this.plainLocations.filter( f => f.section === sectionTopLeft);
+      topLeftLocationsLs.forEach((local:Location) => {
+        const p = new Point2D(local.point.x * newWidth, local.point.y * newWidth + newWidth);
+        const l = new Location(p, local.section, local.id);
+        tempLocals.push(l);
+      });
+      tempLocals.forEach((local:Location) => {
+        local.point.x = local.point.x - leftXs[0];
+        local.point.y = local.point.y - leftYs[0];
+      });
+      this.largeLayout.push(tempLocals);
+    }
+    //lets check bottom left
+    leftCol = col - 1;
+    bottomRow = row + 1;
+    let sectionBottomLeft = bottomRow + '-' + leftCol;
+    const sectionBottomLeftLocations = this.plainLocations.find( f => f.section === sectionBottomLeft);
+    if(sectionBottomLeftLocations) {
+      tempLocals = [];
+      const bottomLeftLocationLs = this.plainLocations.filter( f =>  f.section === sectionBottomLeft);
+      bottomLeftLocationLs.forEach((local:Location) => {
+        const p = new Point2D(local.point.x * newWidth , (local.point.y * newWidth + newWidth) + cloneYs[0]);
+        const l = new Location(p, local.section, local.id);
+        tempLocals.push(l);
+      });
+      tempLocals.forEach((local:Location) => {
+        local.point.x = local.point.x - leftXs[0];
+      });
+      this.largeLayout.push(tempLocals);
+    }
+    */
 
   }
   private drawBoundary(): void {
@@ -387,13 +580,23 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       onlyYs.sort((a, b) => a - b);
       cloneXs.sort((a, b) => b - a);
       cloneYs.sort((a, b) => b - a);
+      let yIter = 0;
+      let hitStarter:Location = null;
+      while(yIter < onlyYs.length) {
+        hitStarter = secLocations.find( s => s.point.x === onlyXs[0] && s.point.y === onlyYs[yIter])
+        if(hitStarter) {
+          break;
+        }
+        yIter++;
+      } 
      
-      this.plainSections[section] = new Section(onlyXs[0],cloneXs[0],onlyXs[0],cloneYs[0]);
-      const deltas:Point2D[] =  [];
+      this.plainSections[section] = new Section(onlyXs[0],cloneXs[0],onlyXs[0],cloneYs[0], section);
+      const deltas:Location[] =  [];
       secLocations.forEach( p => {
-        const deltaX = p.point.x - onlyXs[0];
-        const deltaY = p.point.y - onlyYs[0];
-        deltas.push(new Point2D(deltaX, deltaY));
+        const deltaX = p.point.x - hitStarter.point.x;
+        const deltaY = p.point.y - hitStarter.point.y;
+        //deltas.push(new Point2D(deltaX, deltaY));
+        deltas.push(new Location(new Point2D(deltaX, deltaY), p.section, p.id))
       });
       this.plainSections[section].deltas = [...deltas];
     });
@@ -430,11 +633,12 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
             const color = newColors[i];
             //console.log('Here are the colors => ', color);
             if(color) {
-              const newId = this.guid();
+              const newId = this.plainPixels.length + '-' + i.toString();
               const newPixel = new Pixel(letter, color.r, color.g, color.b, newId);
               //debugger;
               if(locals[i]) {
                 locals[i].id = newId;
+                newPixel.section = locals[i].section;
                 this.plainPixels.push(newPixel);
                 const cloneLocal = {
                     ...locals[i]
