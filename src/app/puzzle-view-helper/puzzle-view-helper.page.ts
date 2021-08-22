@@ -335,8 +335,13 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     const numOfCols = 10;
     const newWidth = Math.floor(this.canvasRef.width / numOfCols);
     console.log('New Width => ', newWidth);
-    const secLocations = this.plainLocations.filter( f=> f.section === this.hitSection);
+    /*const secLocations = this.plainLocations.filter( f=> f.section === this.hitSection);
     secLocations.forEach( (local:Location) => {
+      const p = new Point2D(local.point.x * newWidth, local.point.y * newWidth + newWidth);
+      const l = new Location(p, local.section, local.id);
+      tempLocals.push(l);
+    });*/
+    this.plainSections[this.hitSection].deltas.forEach((local:Location) => {
       const p = new Point2D(local.point.x * newWidth, local.point.y * newWidth + newWidth);
       const l = new Location(p, local.section, local.id);
       tempLocals.push(l);
@@ -381,7 +386,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       //console.log('Hit calc => ', hitRight, this.hitCorner, (hitRight.position.x / this.puzzleConstants.cellWidth - this.hitCorner.position.x / this.puzzleConstants.cellWidth), (hitRight.position.y / this.puzzleConstants.cellWidth - this.hitCorner.position.y / this.puzzleConstants.cellWidth),  this.puzzleConstants.cellWidth, newWidth);
       //const rightLocationLs = this.plainSections.filter( f => f.section === newSectionRight)
       console.log('The delta => ', this.plainSections[newSectionRight].deltas);
-      secRightLocations.forEach((local:Location, i) => {
+      /*secRightLocations.forEach((local:Location, i) => {
         //if(i < 22) {
           //const p = new Point2D(deltaX + (local.point.x * newWidth) , (deltaY + (local.point.y * newWidth)) + newWidth);
           //const p = new Point2D(deltaX  , deltaY + newWidth);
@@ -389,7 +394,13 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
           const l = new Location(p, newSectionRight, local.id);
           tempLocals.push(l);
        // }
+      
        
+      });*/
+      this.plainSections[newSectionRight].deltas.forEach((local:Location) => {
+        const p = new Point2D(local.point.x * newWidth , local.point.y * newWidth + newWidth);
+        const l = new Location(p, newSectionRight, local.id);
+        tempLocals.push(l);
       });
       this.largeLayout.push(tempLocals);
     }
@@ -591,10 +602,12 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       } 
      
       this.plainSections[section] = new Section(onlyXs[0],cloneXs[0],onlyXs[0],cloneYs[0], section);
+      this.plainSections[section].cornerX = hitStarter.point.x;
+      this.plainSections[section].cornerY = hitStarter.point.y;
       const deltas:Location[] =  [];
       secLocations.forEach( p => {
-        const deltaX = p.point.x - hitStarter.point.x;
-        const deltaY = p.point.y - hitStarter.point.y;
+        const deltaX =  hitStarter.point.x + (p.point.x - hitStarter.point.x);
+        const deltaY = hitStarter.point.y + (p.point.y - hitStarter.point.y);
         //deltas.push(new Point2D(deltaX, deltaY));
         deltas.push(new Location(new Point2D(deltaX, deltaY), p.section, p.id))
       });
