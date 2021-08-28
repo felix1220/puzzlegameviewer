@@ -394,6 +394,13 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         maxY: cloneYs[0]
       }
     }
+    debugger;
+    if(direction === DirectionType.diagonalUpLeft) {
+      //borders.diffX = this.plainSections[originalKey].cornerX - borders.minX;
+      //borders.diffY = this.plainSections[originalKey].cornerY - borders.minY;
+      //var dist = Math.sqrt( Math.pow((x1-x2), 2) + Math.pow((y1-y2), 2) );
+      borders.distance = Math.sqrt(Math.pow(borders.maxX - borders.minX, 2) + Math.pow(borders.maxY - borders.minY, 2));
+    }
     return borders;
   }
   private prepLargeSelection(): void {
@@ -554,7 +561,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       const leftDiag = this.diagonalMeasure(this.hitSection, DirectionType.diagonalUpLeft);
       //const topLeftLocationsLs = this.plainLocations.filter( f => f.section === sectionTopLeft);
       this.plainSections[sectionTopLeft].deltas.forEach((local:Location) => {
-        const p = new Point2D( (local.point.x * newWidth) - (leftDiag.minX * newWidth), (local.point.y * newWidth) - (leftDiag.minY * newWidth));
+        const p = new Point2D( (local.point.x * newWidth) - (leftDiag.diffX * newWidth), (local.point.y * newWidth) - (leftDiag.diffY * newWidth));
         const l = new Location(p, local.section, local.id);
         tempLocals.push(l);
       });
