@@ -7,7 +7,7 @@ import { Puzzle } from '../models/puzzle';
 import { LoaderService } from '../services/loader/loader.service';
 import { PuzzleService } from '../services/puzzle.service';
 import { Platform } from '@ionic/angular';
-import { ThrowStmt } from '@angular/compiler';
+import { JitSummaryResolver, ThrowStmt } from '@angular/compiler';
 import { Section } from '../models/section';
 import { PuzzleImports } from '../models/puzzleImports';
 import { DirectionType } from '../models/directions';
@@ -358,6 +358,27 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       cornerY: cornerY
     };
   }
+  private findMaxMin(key:string): any {
+    const justPixels = this.allPixles.filter( f => f.section === key);
+    const justXs = justPixels.map( m => m.position.x);
+    const justYs = justPixels.map( m => m.position.y);
+    const cloneXs = [...justXs];
+    const cloneYs = [...justYs];
+    justXs.sort((a, b) => a - b);
+    justYs.sort((a, b) => a - b);
+    cloneXs.sort((a, b) => b - a);
+    cloneYs.sort((a, b) => b - a);
+    const borders = {
+      minX:justXs[0],
+      minY: justYs[0],
+      maxX: cloneXs[0],
+      maxY: cloneYs[0],
+      justXs: justXs,
+      justYs: justYs
+    }
+    return borders;
+  
+  }
   private diagonalMeasure(originalKey: string, direction: DirectionType): any {
     let row = -1;
     let col = -1;
@@ -377,31 +398,62 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       col = +keyArr[1] + 1;
     }
     const newKey = row + '-' + col;
+    let hitStarter:Pixel = null;
+    let originalStart:Pixel = null;
+    let topLeftborders: any = null;
     if(this.plainSections[newKey]) {
-      const justPixels = this.plainPixels.filter( f => f.section === newKey);
-      const justXs = justPixels.map( m => m.position.x);
-      const justYs = justPixels.map( m => m.position.y);
-      const cloneXs = [...justXs];
-      const cloneYs = [...justYs];
-      justXs.sort((a, b) => a - b);
-      justYs.sort((a, b) => a - b);
-      cloneXs.sort((a, b) => b - a);
-      cloneYs.sort((a, b) => b - a);
-      borders = {
-        minX:justXs[0],
-        minY: justYs[0],
-        maxX: cloneXs[0],
-        maxY: cloneYs[0]
+      topLeftborders = this.findMaxMin(newKey)
+      let yIter = 0;
+      while(yIter < topLeftborders.justYs.length) {
+        hitStarter = this.allPixles.find( s => s.position.x === topLeftborders.justXs[0] && s.position.y === topLeftborders.justYs[yIter])
+        if(hitStarter) {
+          break;
+        }
+        yIter++;
+      }
+      borders = this.findMaxMin(originalKey);
+      yIter = 0;
+      while(yIter < borders.justYs.length) {
+        originalStart = this.allPixles.find( s => s.position.x === borders.justXs[0] && s.position.y === borders.justYs[yIter])
+        if(originalStart) {
+          break;
+        }
+        yIter++;
       }
     }
-    debugger;
+    /* this.context.fillStyle = "#000000";
+      this.context.beginPath();
+      this.context.arc(hitStarter.position.x, hitStarter.position.y, 12, 0, 2 * Math.PI);
+      this.context.fill();
+      //this.context.stroke();*/
+    //debugger;
+    const radian45 = 45 * (Math.PI/180);
     if(direction === DirectionType.diagonalUpLeft) {
       //borders.diffX = this.plainSections[originalKey].cornerX - borders.minX;
       //borders.diffY = this.plainSections[originalKey].cornerY - borders.minY;
       //var dist = Math.sqrt( Math.pow((x1-x2), 2) + Math.pow((y1-y2), 2) );
-      borders.distance = Math.sqrt(Math.pow(borders.maxX - borders.minX, 2) + Math.pow(borders.maxY - borders.minY, 2));
+      //borders.distance = Math.sqrt(Math.pow(originalStart.position.x - hitStarter.position.x, 2) + Math.pow(originalStart.position.y - hitStarter.position.y, 2)) / this.puzzleConstants.cellWidth;
+      borders.distance = Math.sqrt(Math.pow(borders.minX - topLeftborders.minX, 2) + Math.pow(borders.minY - topLeftborders.minY, 2)) / this.puzzleConstants.cellWidth;
+      borders.diffX = Math.ceil(Math.cos(radian45) * borders.distance)
+      borders.diffY = Math.ceil(Math.sin(radian45) * borders.distance)
+      console.log('Northwest square => ',borders.diffX, borders.diffY);
+      borders.newDeltas = this.calcDeltas(borders.minX, borders.minY, newKey)
+
     }
     return borders;
+  }
+  private calcDeltas(posX: number, posY: number, key: string): any[] {
+    const deltas:Location[] =  [];
+   const pixels = this.allPixles.filter(f => f.section === key);
+   pixels.forEach(p => {
+     const deltaX = posX - p.position.x;
+     const deltaY = posY - p.position.y;
+     deltas.push(new Location(new Point2D(deltaX / this.puzzleConstants.cellWidth, deltaY / this.puzzleConstants.cellWidth), p.section, p.id))
+    
+   });
+   console.log('the section => ', key, this.plainSections);
+   //this.plainSections[key].deltas = [...deltas];
+   return deltas;
   }
   private prepLargeSelection(): void {
     this.largeLayout = [];
@@ -559,16 +611,21 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       tempLocals = [];
       //cornerConstraints = this.collectTopSection(sectionTopLeft);
       const leftDiag = this.diagonalMeasure(this.hitSection, DirectionType.diagonalUpLeft);
+      //const startX = justXs[0] - (leftDiag.diffX * newWidth);
+      //const startY = justYs[0] - (leftDiag.diffY * newWidth);
       //const topLeftLocationsLs = this.plainLocations.filter( f => f.section === sectionTopLeft);
-      this.plainSections[sectionTopLeft].deltas.forEach((local:Location) => {
-        const p = new Point2D( (local.point.x * newWidth) - (leftDiag.diffX * newWidth), (local.point.y * newWidth) - (leftDiag.diffY * newWidth));
+      leftDiag.newDeltas.forEach((local:Location) => {
+        const p = new Point2D( justXs[0] - (local.point.x * newWidth) , justYs[0] - (local.point.y * newWidth));
         const l = new Location(p, local.section, local.id);
         tempLocals.push(l);
       });
+     
      /* tempLocals.forEach((local:Location) => {
-        local.point.x = local.point.x - leftXs[0] - newWidth;
-        local.point.y = local.point.y + newWidth + newWidth + newWidth + newWidth;
+        local.point.x = local.point.x - (leftDiag.diffX * newWidth);
+        local.point.y = local.point.y - (leftDiag.diffY * newWidth)
+      
       });*/
+    
       this.largeLayout.push(tempLocals);
     }
     //lets check bottom left
