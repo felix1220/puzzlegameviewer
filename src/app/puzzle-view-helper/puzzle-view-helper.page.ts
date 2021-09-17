@@ -1,5 +1,5 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 import { Pixel } from '../models/pixel';
 import { Location } from '../models/location';
 import { Point2D } from '../models/point';
@@ -44,6 +44,12 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   hitCorner: Pixel;
   largeLayout: Location[][] = [];
   currSelectionQueue: Location[] = [];
+  filteredLocations: Location[] = [];
+  displayErrModal:boolean = false;
+  subScriptionTimer: Subscription; 
+  searchWords: string[] = [];
+  isTimerStarted: boolean = false;
+  mainPuzzleLocations: Location[][] = [];
 
   constructor(private puzzleService: PuzzleService, 
     private loaderSvc: LoaderService,
@@ -88,6 +94,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       this.drawBoundary();
       this.loadCanvasMouseEvents();
       this.loaderSvc.dismiss();
+      this.searchWords = this.convertWordsToArray(puzzleData[0].words)
     });
 
   }
@@ -116,7 +123,8 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       this.isMouseDown = true;
       if(this.statusMove && !this.inLargeMode) {
         
-        this.showStandardMode(); 
+        this.showStandardMode();
+        this.renderWords();
       
       }
       if(this.statusHighlight && !this.inLargeMode) {
@@ -126,9 +134,13 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         this.statusHighlight = false;
         this.throwToggleStatus();
         this.showSection();
+       // this.renderWords();
+       this.displayAllSelectionsUser();
       }
       if(this.statusHighlight && this.inLargeMode) {
-
+        this.showSection();
+        this.processLetterHighlight(pt);
+        
       }
       this.initialDown = new Point2D(pt.x, pt.y);
     };
@@ -141,13 +153,17 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         this.updatePuzzlePosition(deltaX, deltaY);
         this.updateSectionPosition(deltaX, deltaY);
         this.showStandardMode();
+        this.renderWords();
       }
       if(!this.isMouseDown && this.statusHighlight && !this.inLargeMode) {
         this.showStandardMode();
         this.displaySections(pt);
+        this.renderWords();
       }
       if(!this.isMouseDown && this.statusMove && this.inLargeMode) {
         this.showSection();
+        this.filterDownLarge();
+        this.displayAllSelectionsUser();
       }
       if(this.isMouseDown && this.statusMove && this.inLargeMode) {
         let deltaX = pt.x - this.initialDown.x;
@@ -155,6 +171,8 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         this.initialDown = new Point2D(pt.x, pt.y);
         this.updateLargeLetters(deltaX, deltaY);
         this.showSection();
+        this.filterDownLarge();
+        this.displayAllSelectionsUser();
       }
     };
     this.canvasRef.onmouseup = (evt) => {
@@ -166,6 +184,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     this.statusMove = true;
     this.throwToggleStatus();
     this.showStandardMode();
+    this.renderWords();
     
   }
   throwToggleStatus(): void {
@@ -189,6 +208,83 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     if(this.puzzleSubscribe) {
       this.puzzleSubscribe.unsubscribe();
     }
+    if(this.subScriptionTimer) {
+      this.subScriptionTimer.unsubscribe();
+    }
+  }
+  closeOops(): void {
+    this.displayErrModal = false;
+  }
+  private convertWordsToArray(words: string[]): string[] {
+    const newWords = words.map( word => word.split(','))
+    const firstWords = newWords.map(word => word[0]);
+    firstWords.sort();
+    console.log('Incoming words => ', firstWords);
+    return firstWords;
+  }
+  private checkSelectdWord(selectedWord: string): boolean {
+    return this.searchWords.some( w => w.toLocaleLowerCase() === selectedWord.toLocaleLowerCase())
+  }
+  private processLetterHighlight(pt:Point2D): void {
+    const numOfCols = 10;
+    const newWidth = Math.floor(this.canvasRef.width / numOfCols);
+    const letter = this.filteredLocations.find(f => f.point.x < pt.x && pt.x < f.point.x + newWidth && (f.point.y - newWidth) < pt.y && pt.y < f.point.y );
+    console.log('Letter Location found => ', letter);
+    if(letter) {
+      if(!this.isTimerStarted) {
+        this.startTimer();
+        this.isTimerStarted = true;
+      }
+      if(this.currSelectionQueue.length < 1) {
+        this.currSelectionQueue.push(letter)
+      } else {
+        const len = this.currSelectionQueue.length;
+        const currDir = this.findDir(this.currSelectionQueue[0].point, letter.point);
+        if( this.currSelectionQueue.length && currDir !== DirectionType.None && currDir && this.withInBounds(this.currSelectionQueue[len-1].point, letter.point, newWidth)) {
+          letter.dir = currDir;
+          letter.width = newWidth;
+          this.currSelectionQueue[0].dir = currDir;
+          this.currSelectionQueue[0].width = newWidth;
+          this.currSelectionQueue.push(letter);
+          letter.dir = currDir;
+          letter.width = newWidth;
+          console.log('What is the fucking queue => ', this.currSelectionQueue)
+          const justPoints = this.currSelectionQueue.map(m => m.point);
+          const selectObj = this.buildHighlighter(justPoints, currDir, newWidth);
+          this.displaySelectionsByUser(selectObj);
+        } else {
+          console.log('Error...stop cheating!!');
+          this.displayErrModal = true;
+        }
+      }
+    }
+  }
+  private getMyLetter(id: any): string {
+    const pixel = this.plainPixels.find( p => p.id === id);
+    return pixel.letter;
+  }
+  private startTimer(): void {
+    setTimeout(() => {
+      let word = '';
+      this.currSelectionQueue.forEach( w => {
+        const letter = this.getMyLetter(w.id)
+        if(letter) {
+          word = word + letter;
+        }
+      });
+    
+      if(this.checkSelectdWord(word)) {
+        this.mainPuzzleLocations.push(this.currSelectionQueue);
+        this.currSelectionQueue = [];
+        console.log('Right word!!! ', word);
+      } else {
+        //error message wrong word
+        console.log('Wrong word!!! ', word);
+        this.currSelectionQueue = [];
+      }
+      this.isTimerStarted = false;
+    },6000);
+    
   }
   private findDir(start: Point2D, end: Point2D): DirectionType {
     // debugger;
@@ -212,6 +308,84 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
               subDir = DirectionType.diagonalDownLeft
             }
               return subDir;
+  }
+  private withInBounds(start: Point2D, end: Point2D, checkWidth: number): boolean {
+    // debugger;
+     const midX1 = (start.x + checkWidth) / 2;
+     const midY1 = (start.y + checkWidth) / 2;
+     const midX2 = (end.x + checkWidth) / 2;
+     const midY2 = (end.y + checkWidth) / 2;
+     const a = midX1 - midX2;
+     const b  = midY1 - midY2;
+     const c = Math.floor(Math.sqrt( a*a + b*b ));
+     return c <= 40;
+ 
+   }
+   private renderWords(): void {
+    this.mainPuzzleLocations.forEach( selec => {
+      const newMappings = selec.map( (l:Location) => {
+        const updatedLocation =  this.allPixles.find(f => f.id === l.id)
+        return {
+          point: updatedLocation.position,
+          section: l.section,
+          id: l.id,
+          dir: l.dir,
+          width: l.width
+        };
+      });
+      
+      const points = newMappings.map( m => m.point)
+      const result = this.buildHighlighter(points, newMappings[0].dir, this.puzzleConstants.cellWidth);
+      this.displaySelectionsByUser(result);
+    });
+  }
+   private displayAllSelectionsUser(): void {
+    if(!this.mainPuzzleLocations.length) {
+      return;
+    }
+    const flatLocations = [].concat.apply([],this.largeLayout);
+    
+     this.mainPuzzleLocations.forEach(h => {
+       const newMappings = h.map( (l:Location) => {
+        const updatedLocation = flatLocations.find(f => f.id === l.id)
+            return {
+              ...updatedLocation,
+              dir: l.dir,
+              width: l.width
+            }
+         });
+        // console.log('Flat locations => ', this.mainPuzzleLocations);
+       const points = newMappings.map( m => m.point)
+       const newHighLiight = this.buildHighlighter(points, newMappings[0].dir, newMappings[0].width)
+      
+      this.displaySelectionsByUser(newHighLiight);  
+     });
+   }
+   private displaySelectionsByUser(selectionCoords: highlight): void {
+    if (selectionCoords && !selectionCoords.start) {
+      return;
+    }
+    this.context.beginPath();
+    this.context.save();
+    this.context.lineWidth = 2;
+    this.context.moveTo(selectionCoords.start.start.x, selectionCoords.start.start.y);
+    this.context.lineTo(selectionCoords.start.end.x, selectionCoords.start.end.y);
+         selectionCoords.top.forEach((l) => {
+      
+          this.context.moveTo(l.start.x, l.start.y);
+          this.context.lineTo(l.end.x, l.end.y);
+        
+      });
+        selectionCoords.bottom.forEach((l) => {
+      
+        this.context.moveTo(l.start.x, l.start.y);
+        this.context.lineTo(l.end.x, l.end.y);
+      
+    });
+    this.context.moveTo(selectionCoords.end.start.x, selectionCoords.end.start.y);
+    this.context.lineTo(selectionCoords.end.end.x, selectionCoords.end.end.y);
+    this.context.stroke();
+    this.context.restore();
   }
   private buildHighlighter(positions: Point2D[], selectDir:DirectionType, largeWidth: number): highlight {
     
@@ -566,12 +740,15 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     });
   }
   private filterDownLarge(): void {
+    this.filteredLocations = [];
     const width = this.canvasRef.width;
     const height = this.canvasRef.height;
     this.largeLayout.forEach((layoutArr:Location[]) => {
-      layoutArr.forEach((local:Location) => {
+      const result = layoutArr.filter( f => f.point.x >= 0 && f.point.x < width && f.point.y > 0 && f.point.y < height);
+      this.filteredLocations = [...this.filteredLocations, ...result];
+      /*layoutArr.forEach((local:Location) => {
 
-      })
+      })*/
     });
   }
   private showSection(): void {

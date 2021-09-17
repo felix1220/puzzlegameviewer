@@ -21,4 +21,15 @@
 <div id="closeLetters" *ngIf="inLargeMode" (click)="backToMainScreen()">
     <span>X</span>
   </div>
+  <div *ngIf="displayErrModal" class="puzzle-err-modal">
+    <div style="float: left;">
+      <img src="/assets/confused-emoji.png" />
+    </div>
+    <div class="center-oops-modal" style="float: right;">
+    Ooops...
+     <div>
+       <button (click)="closeOops()">Close</button>
+     </div>
+    </div>
+  </div>
 </ion-content>
