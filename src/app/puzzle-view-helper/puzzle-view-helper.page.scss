@@ -51,6 +51,22 @@
     //margin-bottom: 7em;
     
 }
+#wordPanel {
+    display:flex;
+    position:absolute;
+    top:0;
+    width:300px;
+    margin:auto;
+    background-color:#8A2BE2 ;
+    color:white;
+    height: 50px;
+    font-size: 36px;
+    font-weight: 700;
+    z-index: 100;
+    border: 2px solid black;
+    border-radius: 10px;
+    margin-left: 4em;
+}
 .puzzle-err-modal {
     position: absolute;
     float: left;

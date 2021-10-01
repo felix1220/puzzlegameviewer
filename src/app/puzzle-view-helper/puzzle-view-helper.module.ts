@@ -8,15 +8,21 @@ import { PuzzleViewHelperPageRoutingModule } from './puzzle-view-helper-routing.
 
 import { PuzzleViewHelperPage } from './puzzle-view-helper.page';
 import { PuzzleService } from '../services/puzzle.service';
+import { ComponentsModule } from '../components/components.module';
+import {ProgressBarModule} from "angular-progress-bar"
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    PuzzleViewHelperPageRoutingModule
+    PuzzleViewHelperPageRoutingModule,
+    ComponentsModule,
+    ProgressBarModule
   ],
-  declarations: [PuzzleViewHelperPage],
+  declarations: [
+    PuzzleViewHelperPage
+  ],
   providers:[PuzzleService]
 })
 export class PuzzleViewHelperPageModule {}

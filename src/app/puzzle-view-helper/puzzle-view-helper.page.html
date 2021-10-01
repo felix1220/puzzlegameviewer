@@ -5,6 +5,18 @@
 </ion-header>
 
 <ion-content>
+  <div id="wordPanel" *ngIf="displayWordBanner">
+    {{ currWord }}
+  </div>
+  <div style="width: 100%">
+    <div style="width:33%; float: left">
+      <progress-bar [progress]="progressStatus" [color]="'#488aff'">
+      </progress-bar>
+    </div>
+    <div style="width:62%; float: right">
+      <app-stopwatch [shouldStart]="shouldStart"></app-stopwatch>
+    </div>
+  </div>
   <div class="wrapper" style="float:left;width:70%">
     <div *ngIf="!this.displayLarge">
       <canvas id="canvasPuzzle" width="500" height="500" ></canvas>

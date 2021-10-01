@@ -50,6 +50,10 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   searchWords: string[] = [];
   isTimerStarted: boolean = false;
   mainPuzzleLocations: Location[][] = [];
+  displayWordBanner: boolean = false;
+  currWord: string = "";
+  progressStatus:number = 30;
+  shouldStart: boolean = true;
 
   constructor(private puzzleService: PuzzleService, 
     private loaderSvc: LoaderService,
@@ -257,6 +261,14 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
           this.displayErrModal = true;
         }
       }
+      this.displayWordBanner = true;
+      this.buildWord();
+    }
+  }
+  private buildWord(): void {
+
+    if(this.currSelectionQueue.length) {
+      this.currWord += this.getMyLetter(this.currSelectionQueue[this.currSelectionQueue.length-1].id);
     }
   }
   private getMyLetter(id: any): string {
@@ -283,6 +295,8 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         this.currSelectionQueue = [];
       }
       this.isTimerStarted = false;
+      this.currWord = '';
+      this.displayWordBanner = false;
     },6000);
     
   }
