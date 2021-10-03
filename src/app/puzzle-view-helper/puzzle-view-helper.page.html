@@ -13,8 +13,17 @@
       <progress-bar [progress]="progressStatus" [color]="'#488aff'">
       </progress-bar>
     </div>
-    <div style="width:62%; float: right">
-      <app-stopwatch [shouldStart]="shouldStart"></app-stopwatch>
+    <div class="stop-watch">
+      <app-stopwatch [shouldStart]="shouldStart" [howManyFound]="howManyFound"></app-stopwatch>
+      
+    </div>
+    <div style="width:30%; float:left">
+      <div *ngIf="normalStop">
+        <img src="/assets/stop2-sm.png" (click)="toggleStop()" class="img-stop"/>
+      </div>
+      <div *ngIf="!normalStop">
+        <img src="/assets/stop2-sm-crossout.png" (click)="toggleStop()" class="img-stop" />
+      </div>
     </div>
   </div>
   <div class="wrapper" style="float:left;width:70%">
@@ -25,6 +34,13 @@
       <canvas id="canvasPuzzle" width="800" height="800"></canvas>
     </div>
    <!--<canvas id="canvas2" width="500" height="500"></canvas>-->
+</div>
+<div class="wrapper" style="float:left;width: 30%">
+      <div *ngFor="let w of searchWords">
+        <div [ngStyle]="{'text-decoration': (w.found) ? 'line-through' : ''}">
+          {{ capitalizeFirstLetter(w.word.toLowerCase()) }}
+        </div>
+      </div>
 </div>
 <div id="togglePanel">
   <div id="moveCanvas" class="highlight" (click)="toggleStatus($event)" >Move Puzzle</div>

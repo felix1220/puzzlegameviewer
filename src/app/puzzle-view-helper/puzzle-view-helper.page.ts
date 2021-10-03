@@ -47,13 +47,15 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   filteredLocations: Location[] = [];
   displayErrModal:boolean = false;
   subScriptionTimer: Subscription; 
-  searchWords: string[] = [];
+  searchWords: any[] = [];
   isTimerStarted: boolean = false;
   mainPuzzleLocations: Location[][] = [];
   displayWordBanner: boolean = false;
   currWord: string = "";
-  progressStatus:number = 30;
-  shouldStart: boolean = true;
+  progressStatus:number = 0;
+  shouldStart: boolean = false;
+  howManyFound: number = 0;
+  normalStop: boolean = true;
 
   constructor(private puzzleService: PuzzleService, 
     private loaderSvc: LoaderService,
@@ -102,6 +104,12 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     });
 
   }
+  capitalizeFirstLetter(word:string) {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }
+  toggleStop() {
+    this.normalStop = !this.normalStop;
+  }
   private getMousePos = (evt) => {
     var rect = this.canvasRef.getBoundingClientRect();
 
@@ -122,6 +130,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     })
   }
   private loadCanvasMouseEvents(): void {
+
     this.canvasRef.onmousedown = (evt) => {
       const pt = this.getMousePos(evt);
       this.isMouseDown = true;
@@ -144,6 +153,8 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       if(this.statusHighlight && this.inLargeMode) {
         this.showSection();
         this.processLetterHighlight(pt);
+        //this.renderWords();
+        this.displayAllSelectionsUser();
         
       }
       this.initialDown = new Point2D(pt.x, pt.y);
@@ -189,6 +200,8 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     this.throwToggleStatus();
     this.showStandardMode();
     this.renderWords();
+    this.isMouseDown = false;
+    this.statusHighlight = false;
     
   }
   throwToggleStatus(): void {
@@ -219,15 +232,21 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   closeOops(): void {
     this.displayErrModal = false;
   }
-  private convertWordsToArray(words: string[]): string[] {
+  private convertWordsToArray(words: string[]): any[] {
     const newWords = words.map( word => word.split(','))
     const firstWords = newWords.map(word => word[0]);
     firstWords.sort();
     console.log('Incoming words => ', firstWords);
-    return firstWords;
+    const convertToObj = firstWords.map( f => {
+      return{
+        word: f,
+        found: false
+      }
+    });
+    return convertToObj;
   }
   private checkSelectdWord(selectedWord: string): boolean {
-    return this.searchWords.some( w => w.toLocaleLowerCase() === selectedWord.toLocaleLowerCase())
+    return this.searchWords.some( w => w.word.toLocaleLowerCase() === selectedWord.toLocaleLowerCase())
   }
   private processLetterHighlight(pt:Point2D): void {
     const numOfCols = 10;
@@ -240,7 +259,8 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         this.isTimerStarted = true;
       }
       if(this.currSelectionQueue.length < 1) {
-        this.currSelectionQueue.push(letter)
+        this.currSelectionQueue.push(letter);
+        this.shouldStart = true;
       } else {
         const len = this.currSelectionQueue.length;
         const currDir = this.findDir(this.currSelectionQueue[0].point, letter.point);
@@ -288,11 +308,21 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       if(this.checkSelectdWord(word)) {
         this.mainPuzzleLocations.push(this.currSelectionQueue);
         this.currSelectionQueue = [];
+        const indx =this.searchWords.findIndex(f => f.word === word);
+        this.searchWords[indx].found = true;
+        const marked = this.searchWords.filter(f => f.found === true).length;
+        this.howManyFound = marked;
+        this.progressStatus = Math.ceil( (marked / this.searchWords.length) * 100);
         console.log('Right word!!! ', word);
+        this.shouldStart = false;
       } else {
         //error message wrong word
         console.log('Wrong word!!! ', word);
         this.currSelectionQueue = [];
+        this.showSection();
+        //this.processLetterHighlight(pt);
+        //this.renderWords();
+        this.displayAllSelectionsUser();
       }
       this.isTimerStarted = false;
       this.currWord = '';

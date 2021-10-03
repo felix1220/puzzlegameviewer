@@ -86,7 +86,7 @@
 }
 .wrapper {
     position: relative;
-    width: 400px;
+    //width: 400px;
     height: 300px;
 }
 .wrapper canvas {
@@ -94,4 +94,12 @@
     top: 0;
     left: 0;
     border: 1px solid black;
+}
+.stop-watch {
+    width:15%; 
+    float: left;
+    margin-left: 10px;
+}
+.img-stop {
+    cursor: pointer;
 }
