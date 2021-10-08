@@ -56,6 +56,8 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   shouldStart: boolean = false;
   howManyFound: number = 0;
   normalStop: boolean = true;
+  stopNum: number = 5;
+  pause: boolean = false;
 
   constructor(private puzzleService: PuzzleService, 
     private loaderSvc: LoaderService,
@@ -109,6 +111,13 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   }
   toggleStop() {
     this.normalStop = !this.normalStop;
+    if(!this.normalStop) {
+      this.stopNum--;
+    }
+    if(!this.normalStop) {
+      this.pause = true;
+    }
+
   }
   private getMousePos = (evt) => {
     var rect = this.canvasRef.getBoundingClientRect();

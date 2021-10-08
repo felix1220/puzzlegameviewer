@@ -14,15 +14,24 @@
       </progress-bar>
     </div>
     <div class="stop-watch">
-      <app-stopwatch [shouldStart]="shouldStart" [howManyFound]="howManyFound"></app-stopwatch>
+      <app-stopwatch [shouldStart]="shouldStart" [howManyFound]="howManyFound" [pause]="pause"></app-stopwatch>
       
     </div>
     <div style="width:30%; float:left">
       <div *ngIf="normalStop">
         <img src="/assets/stop2-sm.png" (click)="toggleStop()" class="img-stop"/>
+        &nbsp;
+        <span class="timer-num">
+          {{ stopNum }}
+        </span>
+       
       </div>
       <div *ngIf="!normalStop">
         <img src="/assets/stop2-sm-crossout.png" (click)="toggleStop()" class="img-stop" />
+        &nbsp;
+        <span class="timer-num">
+          {{ stopNum }}
+        </span>
       </div>
     </div>
   </div>

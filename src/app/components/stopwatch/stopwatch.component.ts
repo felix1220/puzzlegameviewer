@@ -12,11 +12,12 @@ export class StopwatchComponent implements OnInit, OnDestroy, OnChanges {
   hourCntr: number=0;
   timerRef:any;
   running: boolean = false;
+  pauseClock: boolean = false;
   @Input() shouldStart:boolean = false;
   @Input() howManyFound: number = 0;
-  constructor() { 
-    
-
+  @Input() pause: boolean = false;
+  
+  constructor() {
     
   }
 
@@ -46,21 +47,29 @@ export class StopwatchComponent implements OnInit, OnDestroy, OnChanges {
     } else if(changes.shouldStart && changes.howManyFound && changes.howManyFound.currentValue > 0 && changes.shouldStart.currentValue){
       this.setUpTimer();
     }
+    if(changes.pause && changes.pause.currentValue) {
+      //this.clearTimer();
+      this.pauseClock = true;
+    }
+
   }
   setUpTimer(): void {
     this.timerRef = setInterval(() => {
+      if(!this.pauseClock) {
+        this.secondsCntr++;
+        // }
+         if(this.secondsCntr % 60 === 0 && this.secondsCntr > 0) {
+           this.minuteCntr++;
+           this.secondsCntr = 0;
+         }
+         if(this.minuteCntr % 60 === 0 && this.minuteCntr > 0) {
+           this.hourCntr++;
+           this.minuteCntr = 0;
+         }
+      }
       //this.milliCntr = Date.now() - startTime;
       //if(this.milliCntr % 1000 === 0) {
-        this.secondsCntr++;
-     // }
-      if(this.secondsCntr % 60 === 0 && this.secondsCntr > 0) {
-        this.minuteCntr++;
-        this.secondsCntr = 0;
-      }
-      if(this.minuteCntr % 60 === 0 && this.minuteCntr > 0) {
-        this.hourCntr++;
-        this.minuteCntr = 0;
-      }
+    
     }, 1500);
   }
   clearTimer() {
@@ -70,7 +79,10 @@ export class StopwatchComponent implements OnInit, OnDestroy, OnChanges {
     this.secondsCntr = 0;
     this.minuteCntr=0;
     this.hourCntr=0;
-    clearInterval(this.timerRef);
+    if(this.timerRef) {
+      clearInterval(this.timerRef);
+    }
+    
   }
   ngOnDestroy() {
     clearInterval(this.timerRef);
