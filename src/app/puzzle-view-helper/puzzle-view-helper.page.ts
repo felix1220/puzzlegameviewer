@@ -407,11 +407,14 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
               width: l.width
             }
          });
+        // debugger;
         // console.log('Flat locations => ', this.mainPuzzleLocations);
        const points = newMappings.map( m => m.point)
-       const newHighLiight = this.buildHighlighter(points, newMappings[0].dir, newMappings[0].width)
+       if(points.length && points[0]) { 
+        const newHighLiight = this.buildHighlighter(points, newMappings[0].dir, newMappings[0].width);
+        this.displaySelectionsByUser(newHighLiight); 
+       }
       
-      this.displaySelectionsByUser(newHighLiight);  
      });
    }
    private displaySelectionsByUser(selectionCoords: highlight): void {
