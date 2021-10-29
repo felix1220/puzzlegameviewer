@@ -14,7 +14,7 @@
       </progress-bar>
     </div>
     <div class="stop-watch">
-      <app-stopwatch [shouldStart]="shouldStart" [howManyFound]="howManyFound" [pause]="pause"></app-stopwatch>
+      <app-stopwatch [shouldStart]="shouldStart" [pause]="pause" [done]="done"></app-stopwatch>
       
     </div>
     <div style="width:30%; float:left">
@@ -43,6 +43,9 @@
       <canvas id="canvasPuzzle" width="800" height="800"></canvas>
     </div>
    <!--<canvas id="canvas2" width="500" height="500"></canvas>-->
+</div>
+<div class="fireContainer" [hidden]="!showFire">
+   <canvas id="canvasFire" width="700" height="700"></canvas>
 </div>
 <div class="wrapper" style="float:left;width: 30%">
       <div *ngFor="let w of searchWords">

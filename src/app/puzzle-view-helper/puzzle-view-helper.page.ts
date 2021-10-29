@@ -1,5 +1,5 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
-import { Subscription, timer } from 'rxjs';
+import { interval, Subscription, timer } from 'rxjs';
 import { Pixel } from '../models/pixel';
 import { Location } from '../models/location';
 import { Point2D } from '../models/point';
@@ -13,6 +13,8 @@ import { PuzzleImports } from '../models/puzzleImports';
 import { DirectionType } from '../models/directions';
 import { highlight } from '../models/highlight';
 import { Line } from '../models/line';
+import * as Fireworks from './../utils/fireworks';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-puzzle-view-helper',
@@ -22,8 +24,10 @@ import { Line } from '../models/line';
 export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
 
   canvasRef :HTMLCanvasElement;
+  canvas2:HTMLCanvasElement;
   puzzleSubscribe:Subscription;
   context:CanvasRenderingContext2D;
+  context2:CanvasRenderingContext2D;
   puzzleStyle: string;
   cellWidth: number;
   mod: number;
@@ -58,6 +62,8 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   normalStop: boolean = true;
   stopNum: number = 5;
   pause: boolean = false;
+  done: boolean = false;
+  showFire: boolean = false;
 
   constructor(private puzzleService: PuzzleService, 
     private loaderSvc: LoaderService,
@@ -82,6 +88,8 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     this.canvasRef = <HTMLCanvasElement>document.getElementById('canvasPuzzle');
     this.context = this.canvasRef.getContext('2d');
+    this.canvas2 = <HTMLCanvasElement>document.getElementById('canvasFire');
+    this.context2 = this.canvas2.getContext('2d');
     this.puzzleSubscribe = this.puzzleService.loadPuzzles().subscribe( (puzzleData: Puzzle[]) => {
       if(!this.displayLarge) {
         this.puzzleStyle = puzzleData[0].Style;
@@ -116,6 +124,8 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     }
     if(!this.normalStop) {
       this.pause = true;
+    } else if(this.normalStop) {
+      this.pause = false;
     }
 
   }
@@ -143,13 +153,13 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     this.canvasRef.onmousedown = (evt) => {
       const pt = this.getMousePos(evt);
       this.isMouseDown = true;
-      if(this.statusMove && !this.inLargeMode) {
+      if(this.statusMove && !this.inLargeMode && !this.pause) {
         
         this.showStandardMode();
         this.renderWords();
       
       }
-      if(this.statusHighlight && !this.inLargeMode) {
+      if(this.statusHighlight && !this.inLargeMode && !this.pause) {
         
         this.inLargeMode = true;
         this.statusMove = true;
@@ -159,7 +169,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
        // this.renderWords();
        this.displayAllSelectionsUser();
       }
-      if(this.statusHighlight && this.inLargeMode) {
+      if(this.statusHighlight && this.inLargeMode && !this.pause) {
         this.showSection();
         this.processLetterHighlight(pt);
         //this.renderWords();
@@ -170,7 +180,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     };
     this.canvasRef.onmousemove = (evt) => {
       const pt = this.getMousePos(evt);
-      if(this.isMouseDown && this.statusMove && !this.inLargeMode) {
+      if(this.isMouseDown && this.statusMove && !this.inLargeMode && !this.pause) {
         let deltaX = pt.x - this.initialDown.x;
         let deltaY = pt.y - this.initialDown.y;
         this.initialDown = new Point2D(pt.x, pt.y);
@@ -179,17 +189,17 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         this.showStandardMode();
         this.renderWords();
       }
-      if(!this.isMouseDown && this.statusHighlight && !this.inLargeMode) {
+      if(!this.isMouseDown && this.statusHighlight && !this.inLargeMode && !this.pause) {
         this.showStandardMode();
         this.displaySections(pt);
         this.renderWords();
       }
-      if(!this.isMouseDown && this.statusMove && this.inLargeMode) {
+      if(!this.isMouseDown && this.statusMove && this.inLargeMode && !this.pause) {
         this.showSection();
         this.filterDownLarge();
         this.displayAllSelectionsUser();
       }
-      if(this.isMouseDown && this.statusMove && this.inLargeMode) {
+      if(this.isMouseDown && this.statusMove && this.inLargeMode && !this.pause) {
         let deltaX = pt.x - this.initialDown.x;
         let deltaY = pt.y - this.initialDown.y;
         this.initialDown = new Point2D(pt.x, pt.y);
@@ -320,10 +330,13 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         const indx =this.searchWords.findIndex(f => f.word === word);
         this.searchWords[indx].found = true;
         const marked = this.searchWords.filter(f => f.found === true).length;
-        this.howManyFound = marked;
+        //this.howManyFound = marked;
         this.progressStatus = Math.ceil( (marked / this.searchWords.length) * 100);
         console.log('Right word!!! ', word);
-        this.shouldStart = false;
+        this.showFire = true;
+        this.playAudio();
+        this.fireWorksAnime();
+        //this.shouldStart = false;
       } else {
         //error message wrong word
         console.log('Wrong word!!! ', word);
@@ -361,6 +374,29 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
               subDir = DirectionType.diagonalDownLeft
             }
               return subDir;
+  }
+  private fireWorksAnime(): void {
+    const fireWorks = new Fireworks(this.canvas2, this.context2);
+    fireWorks.getAsWebElement();
+    const steps = interval(100);
+    steps.pipe(take(80))
+    .subscribe( num => {
+     // console.log('star steps => ', num);
+      
+    },
+    () => console.log('Error happened!'),
+    () => {
+      this.showFire = false;
+      fireWorks.cancelAnimation();
+      // this.fireWorksRunning = false;
+    });
+  }
+  private playAudio(): void {
+    let audio = new Audio();
+    //audio.src = "/assets/coin-win-notification.wav";
+    audio.src= "/assets/Fireworks-shower.mp3";
+    audio.load();
+    audio.play();
   }
   private withInBounds(start: Point2D, end: Point2D, checkWidth: number): boolean {
     // debugger;

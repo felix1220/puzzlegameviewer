@@ -14,8 +14,8 @@ export class StopwatchComponent implements OnInit, OnDestroy, OnChanges {
   running: boolean = false;
   pauseClock: boolean = false;
   @Input() shouldStart:boolean = false;
-  @Input() howManyFound: number = 0;
   @Input() pause: boolean = false;
+  @Input() done: boolean = false;
   
   constructor() {
     
@@ -41,7 +41,20 @@ export class StopwatchComponent implements OnInit, OnDestroy, OnChanges {
   ngOnChanges(changes: SimpleChanges) {
     //debugger;
     console.log('Stop watch => ',changes);
-    if(changes.shouldStart && changes.howManyFound && changes.howManyFound.currentValue > 0 && !changes.shouldStart.currentValue) {
+    if(changes.shouldStart && changes.shouldStart.currentValue){
+      this.setUpTimer();
+    }
+    if(changes.pause && changes.pause.currentValue) {
+      //this.clearTimer();
+      this.pauseClock = true;
+    }
+    if(changes.pause && !changes.pause.currentValue) {
+      this.pauseClock= false;
+    }
+    if(changes.done && changes.done.currentValue) {
+      this.clearTimer();
+    }
+    /*if(changes.shouldStart && changes.howManyFound && changes.howManyFound.currentValue > 0 && !changes.shouldStart.currentValue) {
       this.clearTimer();
       this.setUpTimer();
     } else if(changes.shouldStart && changes.howManyFound && changes.howManyFound.currentValue > 0 && changes.shouldStart.currentValue){
@@ -50,7 +63,7 @@ export class StopwatchComponent implements OnInit, OnDestroy, OnChanges {
     if(changes.pause && changes.pause.currentValue) {
       //this.clearTimer();
       this.pauseClock = true;
-    }
+    }*/
 
   }
   setUpTimer(): void {

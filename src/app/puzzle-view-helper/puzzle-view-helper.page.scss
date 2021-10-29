@@ -33,6 +33,14 @@
     width: 50%;
     cursor: pointer;
 }
+.fireContainer {
+    top:100px;
+    left:0;
+    width:80%;
+    height: 700px;
+    position: fixed;
+    z-index: 1000;
+}
 #togglePanel {
     display: flex;
     position: fixed;
@@ -93,6 +101,9 @@
     position: absolute;
     top: 0;
     left: 0;
+    border: 1px solid black;
+}
+.fireContainer canvas {
     border: 1px solid black;
 }
 .stop-watch {
