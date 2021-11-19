@@ -5,9 +5,41 @@
 </ion-header>
 
 <ion-content>
-  <div id="wordPanel" *ngIf="displayWordBanner">
+  <!--<div id="wordPanel" *ngIf="displayWordBanner">
     {{ currWord }}
   </div>
+  <ion-grid>
+    <ion-row>
+      <ion-col>
+        <progress-bar [progress]="progressStatus" [color]="'#488aff'">
+        </progress-bar>
+      </ion-col>
+      <ion-col>
+        <div class="stop-watch">
+          <app-stopwatch [shouldStart]="shouldStart" [pause]="pause" [done]="done"></app-stopwatch>
+          
+        </div>
+      </ion-col>
+      <ion-col>
+        <div *ngIf="normalStop">
+          <img src="/assets/stop2-sm.png" (click)="toggleStop()" class="img-stop"/>
+          &nbsp;
+          <span class="timer-num">
+            {{ stopNum }}
+          </span>
+         
+        </div>
+        <div *ngIf="!normalStop">
+          <img src="/assets/stop2-sm-crossout.png" (click)="toggleStop()" class="img-stop" />
+          &nbsp;
+          <span class="timer-num">
+            {{ stopNum }}
+          </span>
+        </div>
+      </ion-col>
+    </ion-row>
+  </ion-grid>-->
+  
   <div style="width: 100%">
     <div style="width:33%; float: left">
       <progress-bar [progress]="progressStatus" [color]="'#488aff'">
@@ -36,11 +68,15 @@
     </div>
   </div>
   <div class="wrapper" style="float:left;width:70%">
-    <div *ngIf="!this.displayLarge">
+    <div *ngIf="!displayLarge">
       <canvas id="canvasPuzzle" width="500" height="500" ></canvas>
     </div>
-    <div *ngIf="this.displayLarge">
+    <div *ngIf="displayLarge">
       <canvas id="canvasPuzzle" width="800" height="800"></canvas>
+    </div>
+    <div id="togglePanel">
+      <div id="moveCanvas" class="highlight" (click)="toggleStatus($event)" >Move Puzzle</div>
+      <div id="highlightCanvas" class="pale" (click)="toggleStatus($event)" >Highlight</div>
     </div>
    <!--<canvas id="canvas2" width="500" height="500"></canvas>-->
 </div>
@@ -48,16 +84,13 @@
    <canvas id="canvasFire" width="700" height="700"></canvas>
 </div>
 <div class="wrapper" style="float:left;width: 30%">
-      <div *ngFor="let w of searchWords">
+      <div *ngFor="let w of searchWords" class="word-column">
         <div [ngStyle]="{'text-decoration': (w.found) ? 'line-through' : ''}">
           {{ capitalizeFirstLetter(w.word.toLowerCase()) }}
         </div>
       </div>
 </div>
-<div id="togglePanel">
-  <div id="moveCanvas" class="highlight" (click)="toggleStatus($event)" >Move Puzzle</div>
-  <div id="highlightCanvas" class="pale" (click)="toggleStatus($event)" >Highlight</div>
-</div>
+
 <div id="closeLetters" *ngIf="inLargeMode" (click)="backToMainScreen()">
     <span>X</span>
   </div>

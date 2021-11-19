@@ -43,18 +43,18 @@
 }
 #togglePanel {
     display: flex;
-    position: fixed;
+    position: relative;
     //top: 495px;
-    left: 0;
-    z-index: 100;
+    //left: 0;
+    z-index: 1000;
     font-family: Roboto, sans-serif;
     width: 230px;
     color: white;
     font-weight: bold;
     border: 2px solid black;
     border-radius: 10px;
-    bottom:0;
-    /*margin-bottom: 200px;*/
+    //bottom:0;
+    margin-top: 45rem;
     //bottom: 0;
     //margin-bottom: 7em;
     
@@ -107,7 +107,7 @@
     border: 1px solid black;
 }
 .stop-watch {
-    width:15%; 
+    width:7%; 
     float: left;
     margin-left: 10px;
 }
@@ -117,4 +117,16 @@
 .timer-num {
     font-weight: 700;
     font-size: 35px;
+}
+.word-column {
+    width:30%;
+    cursor: pointer;
+    font-size:18px;
+    color: white;
+    background-color: #008EB0;
+    margin: 15px;
+    border: 2px solid black;
+    padding:10px;
+    text-align: center;
+    border-radius: 4px;
 }
