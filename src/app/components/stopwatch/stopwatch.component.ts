@@ -16,6 +16,7 @@ export class StopwatchComponent implements OnInit, OnDestroy, OnChanges {
   @Input() shouldStart:boolean = false;
   @Input() pause: boolean = false;
   @Input() done: boolean = false;
+  @Input() setRand: number = 0;
   
   constructor() {
     
@@ -41,8 +42,19 @@ export class StopwatchComponent implements OnInit, OnDestroy, OnChanges {
   ngOnChanges(changes: SimpleChanges) {
     //debugger;
     console.log('Stop watch => ',changes);
-    if(changes.shouldStart && changes.shouldStart.currentValue){
+    /*if(changes.shouldStart && changes.shouldStart.currentValue){
+      this.clearTimer();
       this.setUpTimer();
+    }*/
+    if(changes.setRand && changes.setRand.currentValue > .05) {
+      if(!this.timerRef) {
+        console.log('First time!! => ', this.timerRef);
+        this.setUpTimer();
+       
+      } else {
+        this.calcTime(changes.setRand.currentValue);
+      }
+      
     }
     if(changes.pause && changes.pause.currentValue) {
       //this.clearTimer();
@@ -65,6 +77,17 @@ export class StopwatchComponent implements OnInit, OnDestroy, OnChanges {
       this.pauseClock = true;
     }*/
 
+  }
+  calcTime(newRand: number): void {
+    const penalty = Math.floor(((this.hourCntr * 120) + (this.minuteCntr * 60 ) + this.secondsCntr) * newRand);
+    const seconds = Math.floor(penalty / 120);
+    console.log(' the parameters => ', this.hourCntr, this.minuteCntr, this.secondsCntr, penalty)
+    if(seconds > 60) {
+      this.minuteCntr = Math.floor(seconds/60);
+      this.secondsCntr = seconds - (this.minuteCntr * 60);
+    } else {
+      this.secondsCntr = penalty;
+    }
   }
   setUpTimer(): void {
     this.timerRef = setInterval(() => {

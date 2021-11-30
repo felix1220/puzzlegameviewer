@@ -64,6 +64,8 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   pause: boolean = false;
   done: boolean = false;
   showFire: boolean = false;
+  setRand: number = .05;
+  definitions:any[] = [];
 
   constructor(private puzzleService: PuzzleService, 
     private loaderSvc: LoaderService,
@@ -103,6 +105,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       }
       this.puzzleConstants = new PuzzleImports(this.puzzleStyle, this.cellWidth,0 );
       this.buildAbstractLayer(puzzleData[0].contentSm);
+      this.definitions = this.buildDefinitions(puzzleData[0].definitions);
       this.buildSections();
       this.prepNormalView();
       //this.prepSections();
@@ -128,6 +131,30 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       this.pause = false;
     }
 
+  }
+  openNav(): void {
+    document.getElementById("mySidenav").style.width = "250px";
+    document.getElementById("main").style.marginLeft = "250px";
+    document.body.style.backgroundColor = "rgba(0,0,0,0.4)";
+  }
+  
+  /* Set the width of the side navigation to 0 and the left margin of the page content to 0 */
+  closeNav(): void {
+    document.getElementById("mySidenav").style.width = "0";
+    document.getElementById("main").style.marginLeft = "0";
+    document.body.style.backgroundColor = "white";
+  }
+  private buildDefinitions(definitions: string[]): any[] {
+    let accrue:any[] = [];
+    accrue = definitions.map( m => {
+      const data = m.split('^');
+      return {
+        word: data[0],
+        pos: data[1],
+        definition: data[2]
+      }
+    });
+    return accrue;
   }
   private getMousePos = (evt) => {
     var rect = this.canvasRef.getBoundingClientRect();
@@ -336,6 +363,9 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
         this.showFire = true;
         this.playAudio();
         this.fireWorksAnime();
+        //this.done = true;
+        this.shouldStart = true;
+        this.setRand += .02;
         //this.shouldStart = false;
       } else {
         //error message wrong word
