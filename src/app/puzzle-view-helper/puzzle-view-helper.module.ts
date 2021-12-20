@@ -9,7 +9,8 @@ import { PuzzleViewHelperPageRoutingModule } from './puzzle-view-helper-routing.
 import { PuzzleViewHelperPage } from './puzzle-view-helper.page';
 import { PuzzleService } from '../services/puzzle.service';
 import { ComponentsModule } from '../components/components.module';
-import {ProgressBarModule} from "angular-progress-bar"
+import {ProgressBarModule} from "angular-progress-bar";
+import { AuthService } from '../services/auth.service';
 
 @NgModule({
   imports: [
@@ -19,10 +20,11 @@ import {ProgressBarModule} from "angular-progress-bar"
     PuzzleViewHelperPageRoutingModule,
     ComponentsModule,
     ProgressBarModule
+
   ],
   declarations: [
     PuzzleViewHelperPage
   ],
-  providers:[PuzzleService]
+  providers:[PuzzleService, AuthService]
 })
 export class PuzzleViewHelperPageModule {}

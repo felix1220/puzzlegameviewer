@@ -101,7 +101,12 @@
      <canvas id="canvasFire" width="700" height="700"></canvas>
  </div>
   <div class="wrapper row" style="float:left;width: 30%">
-      <div *ngFor="let w of searchWords" class="word-column col-3" (click)="openNav()">
+      <div class="definition" *ngIf="showPanel">
+        <p>
+          {{ selectedWord }} &nbsp; {{ pos }} &nbsp; {{ definition}}
+        </p>
+      </div>
+      <div *ngFor="let w of searchWords" class="word-column col-3" (click)="openNav(w)">
         <div [ngStyle]="{'text-decoration': (w.found) ? 'line-through' : ''}">
           {{ capitalizeFirstLetter(w.word.toLowerCase()) }}
         </div>

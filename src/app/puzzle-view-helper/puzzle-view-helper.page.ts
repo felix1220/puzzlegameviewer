@@ -66,6 +66,10 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
   showFire: boolean = false;
   setRand: number = .05;
   definitions:any[] = [];
+  selectedWord:string = '';
+  pos:string= '';
+  definition:string='';
+  showPanel:boolean = false;
 
   constructor(private puzzleService: PuzzleService, 
     private loaderSvc: LoaderService,
@@ -106,6 +110,7 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
       this.puzzleConstants = new PuzzleImports(this.puzzleStyle, this.cellWidth,0 );
       this.buildAbstractLayer(puzzleData[0].contentSm);
       this.definitions = this.buildDefinitions(puzzleData[0].definitions);
+      console.log('Definitions => ', this.definitions);
       this.buildSections();
       this.prepNormalView();
       //this.prepSections();
@@ -132,10 +137,18 @@ export class PuzzleViewHelperPage implements OnInit, AfterViewInit, OnDestroy {
     }
 
   }
-  openNav(): void {
-    document.getElementById("mySidenav").style.width = "250px";
+  openNav(wordItem:any): void {
+    /*document.getElementById("mySidenav").style.width = "250px";
     document.getElementById("main").style.marginLeft = "250px";
-    document.body.style.backgroundColor = "rgba(0,0,0,0.4)";
+    document.body.style.backgroundColor = "rgba(0,0,0,0.4)";*/
+    //debugger;
+    const found = this.definitions.find( f => f.word.toLowerCase() === wordItem.word.toLowerCase());
+    if(found) {
+      this.selectedWord = found.word;
+      this.pos = found.pos;
+      this.definition = found.definition;
+    }
+    this.showPanel = true;
   }
   
   /* Set the width of the side navigation to 0 and the left margin of the page content to 0 */

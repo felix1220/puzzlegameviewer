@@ -8,7 +8,7 @@ const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: 'home',
+    redirectTo: 'login',
     pathMatch: 'full'
   },
   {
@@ -26,13 +26,18 @@ const routes: Routes = [
   {
     path:'game-view',
     loadChildren: () => import('./game-view/game-view.module').then(m => m.GameViewPageModule)
-  },  {
+  },
+  {
     path: 'puzzle-viewer',
     loadChildren: () => import('./puzzle-viewer/puzzle-viewer.module').then( m => m.PuzzleViewerPageModule)
   },
   {
     path: 'puzzle-view-helper',
     loadChildren: () => import('./puzzle-view-helper/puzzle-view-helper.module').then( m => m.PuzzleViewHelperPageModule)
+  },
+  {
+    path: 'login',
+    loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
   }
 
 ];

@@ -75,6 +75,12 @@
     border: 2px solid black;
     border-radius: 10px;
 }
+.definition {
+    height: 150px;
+    overflow: auto;
+    font-size: 14px;
+    color: black;
+}
 #wordPanel {
     display:flex;
     position:absolute;
