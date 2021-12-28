@@ -8,6 +8,7 @@ import { LoginPageRoutingModule } from './login-routing.module';
 
 import { LoginPage } from './login.page';
 import { AuthService } from '../services/auth.service';
+import { NewSignupComponent } from './new-signup/new-signup.component';
 
 @NgModule({
   imports: [

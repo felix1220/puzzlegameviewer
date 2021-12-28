@@ -9,25 +9,13 @@ export class AuthService {
     private afAuth: AngularFireAuth
   ) { }
 
-  login(email: string, password: string) {
-    this.afAuth.auth.signInWithEmailAndPassword(email, password)
-    .then(value => {
-      console.log('Nice, it worked!');
-      //this.router.navigateByUrl('/profile');
-    })
-    .catch(err => {
-      console.log('Something went wrong: ', err.message);
-    });
+  login(email: string, password: string): Promise<any> {
+    return this.afAuth.auth.signInWithEmailAndPassword(email, password);
+    
   }
-  emailSignup(email: string, password: string) {
-    this.afAuth.auth.createUserWithEmailAndPassword(email, password)
-    .then(value => {
-     console.log('Sucess', value);
-     //this.router.navigateByUrl('/profile');
-    })
-    .catch(error => {
-      console.log('Something went wrong: ', error);
-    });
+  emailSignup(email: string, password: string): Promise<any> {
+    return this.afAuth.auth.createUserWithEmailAndPassword(email, password);
+   
   }
   googleLogin() {
     const provider = new firebase.auth.GoogleAuthProvider();

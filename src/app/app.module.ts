@@ -15,18 +15,21 @@ import { AngularFireAuthModule } from '@angular/fire/auth';
 import { AngularFireStorageModule } from '@angular/fire/storage';
 import {AngularFirestore} from '@angular/fire/firestore';
 import { AngularFireDatabaseModule } from '@angular/fire/database';
+import { NewSignupComponent } from './login/new-signup/new-signup.component';
+import { AuthService } from './services/auth.service';
+import { FormsModule } from '@angular/forms';
 
 @NgModule({
-  declarations: [AppComponent],
+  declarations: [AppComponent, NewSignupComponent],
   entryComponents: [],
   imports: [BrowserModule, 
     HttpClientModule, 
+    FormsModule,
     IonicModule.forRoot(), 
     AppRoutingModule, 
     ServiceWorkerModule.register('ngsw-worker.js', { enabled: environment.production }),
     AngularFireModule.initializeApp(environment.firebase),
     AngularFireDatabaseModule,
-    AngularFireAuthModule,
     AngularFireAuthModule,
     AngularFireStorageModule
   ],
@@ -34,7 +37,8 @@ import { AngularFireDatabaseModule } from '@angular/fire/database';
     StatusBar,
     SplashScreen,
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
-    AngularFirestore
+    AngularFirestore,
+    AuthService
   ],
   bootstrap: [AppComponent]
 })

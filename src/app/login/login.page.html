@@ -1,8 +1,8 @@
-<ion-header>
+<!--<ion-header>
   <ion-toolbar>
     <ion-title>login</ion-title>
   </ion-toolbar>
-</ion-header>
+</ion-header>-->
 
 <ion-content>
    <div class="container">
@@ -10,11 +10,12 @@
         <button class="mt-3 btn" (click)="loginGoogle()">Login or Signup with Google</button>
      </div>
     <div>
-      <button class="mt-3 email">Sign in with Email</button>
+      <button class="mt-3 email" (click)="oldSignUp()">Sign in with Email</button>
     </div>
     <div class="mt-3">
-      <span class="fake-anchor">No Account?</span>
+      <span class="fake-anchor" (click)="newSignUp()">No Account?</span>
     </div>
     
    </div>
+   
 </ion-content>

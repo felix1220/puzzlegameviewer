@@ -1,3 +1,50 @@
-<p>
-  new-signup works!
-</p>
+<div class="mt-4 login-layout container">
+  <div class="row" *ngIf="loginFailed">
+    <div class="col-12">
+      <div class="alert alert-warning">
+        Email or password is invalid!
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-4">
+     <ion-label>Email</ion-label>
+    </div>
+    <div class="col-4">
+        <input type="text" [(ngModel)]="email" />
+    </div>
+    <div class="col-4">
+      &nbsp;
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-12">
+      <div class="mt-4" *ngIf="blnEmailUse" >
+        <div class="alert alert-warning">
+           Email is already in use!
+        </div>
+      </div>
+      <div *ngIf="!blnEmailUse">
+        &nbsp;
+      </div>
+    </div>
+  </div>
+  <div class="row">
+     <div class="col-4">
+      <ion-label>Password</ion-label>
+     </div>
+      <div class="col-4">
+       <input type="password" [(ngModel)]="pwd" />
+     </div>
+     <div class="col-4">
+       &nbsp;
+     </div>
+  </div>
+  <div class="mt-4 row">
+    <div class="col-12">
+      <button class="cell-style btn" (click)="signUp()">Sign Up!</button>
+    </div>
+  </div>
+</div>
+
+
